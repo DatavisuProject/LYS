@@ -1,1 +1,12 @@
-Liens vers des représentations :
+Liens vers des représentations intéressantes par rapport à notre projet:
+
+#Une visu qui montre une carte avec des liens entre aéroports aux Etats-Unis: 
+http://xliberation.com/googlecharts/d3flights.html
+
+#Une visu en heatmap qui donne les jours de la semaine vs les heures de la journée:
+http://bl.ocks.org/tjdecke/5558084
+
+#Une visu en streamgraph qui nous permettrait de montrer les différents airlines présentes sur LYS:
+https://bl.ocks.org/mbostock/4060954
+
+
