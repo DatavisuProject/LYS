@@ -1,0 +1,3 @@
+Idées:
+Animation dans le temps sur une carte où les traits représentent des vols, et l’épaisseur du trait est proportionnelle au nombre de vols sur une période temporelle donnée.
+

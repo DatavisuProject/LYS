@@ -1,0 +1,1 @@
+##Note: Le rendu doit être compatible avec le navigateur Chrome.
