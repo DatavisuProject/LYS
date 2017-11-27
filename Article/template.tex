@@ -1,0 +1,67 @@
+\documentclass{vgtc}                        
+\ifpdf%                              
+  \pdfoutput=1\relax                  
+  \pdfcompresslevel=9
+  \pdfoptionpdfminorversion=7
+  \ExecuteOptions{pdftex}
+  \usepackage{graphicx}
+  
+  \DeclareGraphicsExtensions{.pdf,.png,.jpg,.jpeg}
+\else
+  \ExecuteOptions{dvips}
+  \usepackage{graphicx}
+  \DeclareGraphicsExtensions{.eps}
+\fi
+
+\graphicspath{{figures/}{pictures/}{images/}{./}}
+\usepackage[utf8]{inputenc}
+
+\usepackage{microtype}
+\PassOptionsToPackage{warn}{textcomp}
+\usepackage{textcomp}
+\usepackage{mathptmx}
+\usepackage{times}
+\renewcommand*\ttdefault{txtt}
+\usepackage{cite}
+\usepackage{tabu}
+\usepackage{booktabs}
+
+
+\onlineid{0}
+
+\title{Visualization of flights from Lyon Saint-Exupéry in space and time}
+
+
+\author{Arthur Aubret\thanks{e-mail: arthur.aubret@etu.univ-lyon1.fr}\\ 
+        \scriptsize Université Lyon 1
+\and Caroline Gaud\thanks{e-mail: caroline.gaud@etu.univ-lyon1.fr}\\
+     \scriptsize Université Lyon 1
+\and Brice Letcher\thanks{e-mail: brice.letcher@etu.univ-lyon1.fr}\\ 
+     \parbox{1.4in}{\scriptsize \centering Université Lyon 1}}
+
+
+
+
+\begin{document}
+
+\firstsection{Introduction}
+\maketitle
+
+Lyon airport is the fourth largest French airport in terms of passenger numbers. With 9,553,250 passengers in 2016 it would be interesting to be able to visualize this data in different forms.
+In this project we will analyze the data obtained on the  "Grand Lyon" website~\cite{GrandLyon} in order to highlight interesting information for the airport. \\
+We will highlight the evolution of flights : in space (according to countries, continents), in time (depending on the season or school holidays)and according to the company.
+
+
+\section{Realted Work}
+
+This part will describe the state of the art of flight visualizations in space, time and companies. \\
+
+
+%\bibliographystyle{abbrv}
+\bibliographystyle{abbrv-doi}
+%\bibliographystyle{abbrv-doi-narrow}
+%\bibliographystyle{abbrv-doi-hyperref}
+%\bibliographystyle{abbrv-doi-hyperref-narrow}
+
+\bibliography{template}
+\end{document}
