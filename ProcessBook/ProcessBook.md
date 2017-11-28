@@ -35,7 +35,7 @@ Nos représentations impliquent : une carte, une heatmap et un streamgraph.
  - Zoom sur la carte
  - Scroll over une destination (flèche) pour visualiser les statistiques disponibles sur cette destination
 
-![carte](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture1.PNG)
+![carte1](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture1.PNG)
 
 **Heatmap** : visualisation des horaires / jours d’affluence
 
@@ -72,7 +72,10 @@ Finalement, nous avons pu trouver des données de vols qui se rapprochent de ce 
 
 
 ### Design de visualisation
-Étant donné que nos données ne correspondent pas exactement à celles attendues, nous avons dû modifier les visualisations établies la semaine précédente. 
+Étant donné que nos données ne correspondent pas exactement à celles attendues, nous avons dû modifier les visualisations établies la semaine précédente. Ainsi, le design de la carte effectué la semaine précédente a été revu comme nous travaillons finalement sur les Etats-Unis.
+
+![carte2](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture4.PNG)
+
 
 
 ### Article scientifique
