@@ -63,7 +63,7 @@ Les designs de ces visualisations sont disponibles dans le dossier « DesignShee
 
  - Obtention des données
  - Recherches sur l'état de l'art
- - Rédaction du premier jet d’un article scientifique
+ - Rédaction d’un premier article scientifique
 
 
 ### Jeux de données
@@ -76,4 +76,4 @@ Finalement, nous avons pu trouver des données de vols qui se rapprochent de ce 
 
 
 ### Article scientifique
-Le premier jet de notre article est disponible dans le dossier « Article ». Il nous a permis de finaliser le cadrage du projet, d’identifier les travaux importants liés au projet et de proposer les premières pistes de conception. 
+La première version de notre article est disponible dans le dossier « Article ». Il nous a permis de finaliser le cadrage du projet, d’identifier les travaux importants liés au projet et de proposer les premières pistes de conception. 
