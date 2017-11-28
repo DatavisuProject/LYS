@@ -7,7 +7,7 @@ Process Book
 
 ## Semaine 1 (16 au 23 novembre)
 
-### Objectifs à remplir :
+### Objectifs à remplir
 
  - Constituer un groupe
  - Choix d’un sujet avec comme thématique la mobilité et les transports
@@ -35,7 +35,7 @@ Nos représentations impliquent : une carte, une heatmap et un streamgraph.
  - Zoom sur la carte
  - Scroll over une destination (flèche) pour visualiser les statistiques disponibles sur cette destination
 
-![carte](https://github.com/DatavisuProject/LYS/ProcessBook/Images/Capture1.PNG)
+![carte](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture1.PNG)
 
 **Heatmap** : visualisation des horaires / jours d’affluence
 
@@ -55,7 +55,7 @@ Les designs de ces visualisations sont disponibles dans le dossier « DesignShee
 
 ## Semaine 2 (23 au 30 novembre)
 
-### Objectifs à remplir :
+### Objectifs à remplir
 
  - Obtention des données
  - Recherches sur l'état de l'art
