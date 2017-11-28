@@ -43,10 +43,14 @@ Nos représentations impliquent : une carte, une heatmap et un streamgraph.
 - Différentes modes : vols et passagers
 - Sélection de timeframe pour essayer de comparer les périodes de vacances et non vacances par exemple
 
+![heatmap](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture2.PNG)
+
 **Streamgraph** : distribution du trafic par airline dans le temps
 
 - Trafic total : vols vs passagers
 - Scroll over une aire : statistiques sur cette compagnie
+
+![streamgraph](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture3.PNG)
 
 Les designs de ces visualisations sont disponibles dans le dossier « DesignSheet ». 
 
