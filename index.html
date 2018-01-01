@@ -1,1 +1,51 @@
-<h1>Hello !</h1>
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- https://bl.ocks.org/mbostock/5544008 -->
+<body>
+SVG
+</body>
+<script src="//d3js.org/d3.v4.min.js"></script>
+<script>
+var margin = {top: 20, right: 30, bottom: 20, left: 100},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+d3.csv("data/airports.dat", function(airports) {
+	d3.csv("data/adapted_flights.csv", function(data){
+		/*var nested = d3.nest()
+			.key(function(d) { return d.tail_number; })
+			.entries(data);*/ // on préfère avoir un objet javascript plutôt qu'un array
+		var nested = {}
+		for(var k=1 ; k < data.length ; k++){
+			d = data[k];
+			if(nested[d.tail_number]	)
+				nested[d.tail_number].values.push(d);
+			else
+				nested[d.tail_number] = { "values" : [d], "dict" : {} };
+			val = nested[d.tail_number]
+			dest = d.destination_airport
+			src= d.origin_airport
+			val.dict[dest] = val.dict[dest]+1 || 1
+			val.dict[src] = val.dict[src]+1 || 1
+		}
+
+		for(var i in nested){//On cherche l'aéroport de base de l'avion
+			aircraft = nested[i]
+			cpt=0
+			for(airport in aircraft.dict){
+				if(aircraft.dict[airport] >= cpt){
+					cpt=aircraft.dict[airport]
+					winner = airport
+				}
+			}
+			nested[i].number = aircraft.dict[winner]
+			nested[i].origin = winner // On sauvegarde le meilleur
+			delete aircraft.dict
+		}
+
+		console.log(nested)
+
+
+	})
+});
+</script>
