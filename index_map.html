@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <style>
+    body { margin:0;top:0;right:0;bottom:0;left:0; }
+  </style>
+</head>
+
+<body>
+  <script>
+		var width = 700,
+  		  height = 580;
+
+
+
+    ///////MAP BUILDING//////
+
+		var svg = d3.select( "body" )
+  		.append( "svg" )
+		  .attr( "width", width )
+		  .attr( "height", height );
+
+
+    var projection = d3.geoAlbersUsa() // d3.geo.albersUsa avec d3 version 3
+    			.translate([width/2, height/2])
+
+    var path = d3.geoPath() // d3.geo.path avec d3 version 3
+                 .projection(projection);
+
+
+    var lineFunction = d3.line()
+                     .x(function(d) { return projection([d.lon,d.lat])[0]; })
+                     .y(function(d) { return projection([d.lon,d.lat])[1]; })
+    
+		d3.json("data/us-states.json", function(json) {
+
+
+	    svg.selectAll("path")
+           .data(json.features)
+           .enter()
+           .append("path")
+            .style("stroke", "#fff") //Creates borders
+           .style("fill", "Moccasin") //Specify map colour
+           .attr("d", path);
+		});
+
+
+d3.json("data/airports_reduced.json", function(airports) {
+
+    svg.selectAll("circle")
+      //.data(airports)
+      .enter()
+      .append("circle")
+      .attr("cx", function(d) {
+        return projection([-73.87,40.78])[0];
+      })
+      .attr("cy", function(d) {
+        return projection([-73.87,40.78])[1];
+      })
+      .style("fill", "rgb(217,91,67)")  
+    .style("opacity", 0.85);
+
+  });
+
+
+    ///////DATA PARSING/////
+
+    var nested = {}
+    var airports_coords = {}
+    first_test="N3KUAA"
+
+    d3.csv("data/airports_reduced.dat", function(airports) {
+
+
+      //Assign each airport coordinates
+      for (var k=1;k<airports.length;k++){
+
+        d=airports[k];
+
+        airports_coords[d.code]={"lat":d.lat,"lon":d.lon}
+
+      }
+
+
+      d3.csv("data/adapted_flights.csv", function(data){
+        /*var nested = d3.nest()
+          .key(function(d) { return d.tail_number; })
+          .entries(data);*/ // on préfère avoir un objet javascript plutôt qu'un array
+        for(var k=1 ; k < data.length ; k++){
+          d = data[k];
+
+          if (d.tail_number!=first_test){
+            continue
+          }
+
+          if(nested[d.tail_number]  )
+            nested[d.tail_number].values.push(d);
+          else
+            nested[d.tail_number] = { "values" : [d], "dict" : {} };
+          val = nested[d.tail_number]
+          dest = d.destination_airport
+          src= d.origin_airport
+          val.dict[dest] = val.dict[dest]+1 || 1
+          val.dict[src] = val.dict[src]+1 || 1
+        }
+
+        for(var i in nested){//On cherche l'aéroport de base de l'avion
+          aircraft = nested[i]
+          cpt=0
+          for(airport in aircraft.dict){
+            if(aircraft.dict[airport] >= cpt){
+              cpt=aircraft.dict[airport]
+              winner = airport
+            }
+          }
+          nested[i].number = aircraft.dict[winner]
+          nested[i].origin = winner // On sauvegarde le meilleur
+          delete aircraft.dict
+        }
+
+        //console.log(nested["N3KUAA"])
+
+      /////DISPLAY ONE FLIGHT PATH//////
+
+      itin=nested[first_test]
+      ori=itin["origin"]
+      prev=ori
+      succession=[]
+      vals=itin["values"]
+
+      for (var i=0; i<vals.length; i++){
+
+        src=vals[i]["origin_airport"];dest=vals[i]["destination_airport"]
+        succession.push([src,dest])
+
+
+        // svg.append("path")
+        //   .data([airports_coords[src],airports_coords[dest]])
+        //   .attr("d",lineFunction)
+
+      }
+
+      //svg.append("path")
+      //  .data()
+      trr=[airports_coords[succession[2][0]],airports_coords[succession[1][1]]]
+
+
+      svg.append("path")
+        .data(trr)
+        .attr("class","line")
+        .attr("d",lineFunction)
+      //console.log(airports_coords[succession[1][1]])
+      console.log(trr)
+      //console.log(succession)
+
+      })
+  });
+
+
+  //console.log(key_one)
+
+  </script>
+</body>
