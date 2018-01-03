@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
+  <style>
+
+    body { 
+      margin:0;top:0;right:0;bottom:0;left:0; 
+    }
+
+
+    #vis {
+        width: 100%;
+        max-width: 960px;
+        margin: 0 auto;
+    }
+
+    #vis div {
+        float: left;
+        position: relative;
+    }
+
+    .route {
+      stroke: steelblue;
+      fill: none;
+    }
+
+    .airport{
+      r:5;
+      fill: rgb(217,91,67);  
+      opacity: 0.85;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<!-- <div id='vis'></div> -->
+
+<div id='vis'></div>
+
+  <script>
+
+		var width = 200,
+  		  height = 150;
+
+
+    ///////MAP BUILDING//////
+
+		// var svg = d3.select( "body" )
+  // 		.append( "svg" )
+		//   .attr( "width", width )
+		//   .attr( "height", height );
+
+
+    var projection = d3.geoAlbers() // d3.geo.albersUsa avec d3 version 3
+    			 .translate([width/2, height/2])
+
+
+    var path = d3.geoPath() // d3.geo.path avec d3 version 3
+                 .projection(projection);
+
+
+    var data_paths={
+      air: "data/airports_US.csv",
+      usa: "data/us-states.json",
+      flights: "data/adapted_flights.csv"
+    };
+
+
+    var line = d3.line()
+                     .x(function(d) { return d.x })
+                     .y(function(d) { return d.y })
+    
+
+    d3.queue()
+      .defer(d3.csv,data_paths.air)
+      .defer(d3.csv,data_paths.flights)
+      .defer(d3.json,data_paths.usa)
+      .await(visualise);
+
+    function visualise(error,airports,flights,states){
+
+      projection.fitSize([width,height],states); //This line fits the geoJSON into given dimensions.
+
+      /////Parse flights data////
+      var nested={};
+
+        /*var nested = d3.nest()
+          .key(function(d) { return d.tail_number; })
+          .entries(data);*/ // on préfère avoir un objet javascript plutôt qu'un array
+        for(var k=1 ; k < flights.length ; k++){
+
+          d = flights[k];
+
+          // if (d.tail_number!=first_test){
+          //   continue
+          // }
+
+          if(nested[d.tail_number]  )
+            nested[d.tail_number].values.push(d);
+          else
+            nested[d.tail_number] = { "values" : [d], "dict" : {} };
+
+          val = nested[d.tail_number]
+          dest = d.destination_airport
+          src= d.origin_airport
+          val.dict[dest] = val.dict[dest]+1 || 1
+          val.dict[src] = val.dict[src]+1 || 1
+        }
+
+        for(var i in nested){//On cherche l'aéroport de base de l'avion
+          aircraft = nested[i]
+          cpt=0
+
+          for(airport in aircraft.dict){
+
+            if(aircraft.dict[airport] >= cpt){
+              cpt=aircraft.dict[airport]
+              winner = airport
+            }
+          }
+
+          nested[i].number = aircraft.dict[winner]
+          nested[i].origin = winner // On sauvegarde le meilleur
+          delete aircraft.dict
+        }
+
+
+        /////Parse airports data///////
+
+      var airports_coords={};
+      //Assign each airport coordinates inside the airports data structure
+      //And store those coordinates in a JS object for use in path drawing
+      for (var k=1;k<airports.length;k++){
+
+        d=airports[k];
+
+        var coords = projection([d.lon, d.lat]);
+          d.x = coords[0];
+          d.y = coords[1];
+
+        airports_coords[d.code]={"x":d.x,"y":d.y}
+
+      }
+
+      tail_numbers=Object.keys(nested) //Get all the tail numbers
+      var to_draw=["N171US","N3HYAA"]; //Put here what you want to draw.
+      var to_draw=tail_numbers.slice(0,6) //Take a certain number
+
+      // var body = d3.select('body')
+      // .selectAll('div')
+      // .data(to_draw).enter()
+      // .append('div')
+      // .style({
+      //     width: width + 'px',
+      //     height: height + 'px'
+      //     })
+      // .call(function(init){return createMapairports,nested[itin],itin,states});
+
+      //createMap(wrapper, airports, nested[itin], itin, states)
+
+
+      to_draw.forEach(function(itin,i){
+
+        var visualizationWrapper = d3.select('#vis'); //Taken from http://bl.ocks.org/chrtze/440f276856cf707963f5
+
+        console.log(visualizationWrapper);
+
+        var wrapper = visualizationWrapper
+                    .append('div');
+
+        wrapper.style({
+                        width: width + 'px',
+                        height: height + 'px'
+                    });
+
+        createMap(wrapper, airports, airports_coords, nested[itin], itin, states);
+
+      });
+
+    }
+
+    function createMap(wrapper, airports, airports_coords, itin_data, itin_name, states){
+
+      console.log(wrapper);
+
+      wrapper.append('p')
+                .text(itin_name)
+                .attr('class', 'legend');
+
+      var svg = wrapper.append('svg');
+
+      svg.attr({
+              width: width,
+              height: height
+          });
+
+
+          ///Draw the map////
+          svg.selectAll("path")
+           .data(states.features)
+           .enter()
+           .append("path")
+            .style("stroke", "#fff") //Creates borders
+           .style("fill", "Moccasin") //Specify map colour
+           .attr("d", path);
+
+
+
+           ////Add the airports and the path itinerary////
+
+
+           var prev=null;
+      var succession=[];
+      var all={};
+      var vals=itin_data["values"];
+
+      for (var i=0; i<vals.length; i++){
+
+        src=vals[i]["origin_airport"];dest=vals[i]["destination_airport"];
+
+        //Add the airports if they have not been seen yet
+        if (! all[src]){all[src]={}};
+        if (! all[dest]){all[dest]={}};
+
+        //Add flight to the succession
+        var add_src=airports_coords[src];
+        var add_dest=airports_coords[dest];
+
+
+        // if (typeof add_src==="undefined"){console.log(src)};
+        if (src===prev){
+
+          succession.push(add_dest);
+
+        }
+
+        else{      
+          //Add a dashed stroke attribute on a prev-->src transition here?
+        succession.push(add_src,add_dest);
+
+        }
+
+        prev=dest;
+        // svg.append("path")
+        //   .data([airports_coords[src],airports_coords[dest]])
+        //   .attr("d",lineFunction)
+      }
+
+    // console.log(succession)
+
+    sub_airports=airports.filter(function(d){
+      return all[d.code];
+    })
+
+
+    ///Airport draw
+      svg.selectAll("circle")
+        .data(sub_airports)
+        .enter()
+        .append("circle")
+        .attr("class","airport")
+        .attr("cx", function(d) {
+          return d.x;
+        })
+        .attr("cy", function(d) {
+          return d.y;
+        })
+
+
+      svg.append("path")
+        .attr("class","route")
+        //.selectAll("path.route")
+        .datum(succession)
+        // .enter()
+        .attr("d",line)
+
+
+    }
+
+
+    ///////DATA PARSING/////
+
+    // d3.csv("data/airports_reduced.dat", function(airports) {
+ 
+ 
+  //console.log(key_one)
+
+  </script>
+</body>

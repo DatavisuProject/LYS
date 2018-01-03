@@ -2,16 +2,34 @@
 <head>
   <meta charset="utf-8">
   <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
   <style>
-    body { margin:0;top:0;right:0;bottom:0;left:0; }
+
+    body { 
+      margin:0;top:0;right:0;bottom:0;left:0; 
+    }
+
+    .route {
+      stroke: steelblue;
+      fill: none;
+    }
+
+    .airport{
+      r:5;
+      fill: rgb(217,91,67);  
+      opacity: 0.85;
+    }
+
   </style>
 </head>
 
 <body>
-  <script>
-		var width = 700,
-  		  height = 580;
 
+<div id="vis"></div>  
+
+  <script>
+		var width = 900,
+  		  height = 580;
 
 
     ///////MAP BUILDING//////
@@ -22,19 +40,22 @@
 		  .attr( "height", height );
 
 
-    var projection = d3.geoAlbersUsa() // d3.geo.albersUsa avec d3 version 3
-    			.translate([width/2, height/2])
+    var projection = d3.geoAlbers() // d3.geo.albersUsa avec d3 version 3
+    			 .translate([width/2, height/2])
+
 
     var path = d3.geoPath() // d3.geo.path avec d3 version 3
                  .projection(projection);
 
 
-    var lineFunction = d3.line()
-                     .x(function(d) { return projection([d.lon,d.lat])[0]; })
-                     .y(function(d) { return projection([d.lon,d.lat])[1]; })
+    var line = d3.line()
+                     .x(function(d) { return d.x })
+                     .y(function(d) { return d.y })
     
+
 		d3.json("data/us-states.json", function(json) {
 
+      projection.fitSize([width,height],json); //This line fits the geoJSON into given dimensions.
 
 	    svg.selectAll("path")
            .data(json.features)
@@ -46,53 +67,42 @@
 		});
 
 
-d3.json("data/airports_reduced.json", function(airports) {
-
-    svg.selectAll("circle")
-      //.data(airports)
-      .enter()
-      .append("circle")
-      .attr("cx", function(d) {
-        return projection([-73.87,40.78])[0];
-      })
-      .attr("cy", function(d) {
-        return projection([-73.87,40.78])[1];
-      })
-      .style("fill", "rgb(217,91,67)")  
-    .style("opacity", 0.85);
-
-  });
-
-
     ///////DATA PARSING/////
 
-    var nested = {}
-    var airports_coords = {}
-    first_test="N3KUAA"
-
-    d3.csv("data/airports_reduced.dat", function(airports) {
+    // d3.csv("data/airports_reduced.dat", function(airports) {
 
 
-      //Assign each airport coordinates
+  d3.csv("data/airports_US.csv", function(airports) { //Load up airports
+
+      var airports_coords={}
+      //Assign each airport coordinates inside the airports data structure
+      //And store those coordinates in a JS object for use in path drawing
       for (var k=1;k<airports.length;k++){
 
         d=airports[k];
 
-        airports_coords[d.code]={"lat":d.lat,"lon":d.lon}
+        var coords = projection([d.lon, d.lat]);
+          d.x = coords[0];
+          d.y = coords[1];
+
+        airports_coords[d.code]={"x":d.x,"y":d.y}
 
       }
 
 
-      d3.csv("data/adapted_flights.csv", function(data){
+      d3.csv("data/adapted_flights.csv", function(data){ //Load up flights nested by tail number
+
+        var nested={}
+
         /*var nested = d3.nest()
           .key(function(d) { return d.tail_number; })
           .entries(data);*/ // on préfère avoir un objet javascript plutôt qu'un array
         for(var k=1 ; k < data.length ; k++){
           d = data[k];
 
-          if (d.tail_number!=first_test){
-            continue
-          }
+          // if (d.tail_number!=first_test){
+          //   continue
+          // }
 
           if(nested[d.tail_number]  )
             nested[d.tail_number].values.push(d);
@@ -119,45 +129,107 @@ d3.json("data/airports_reduced.json", function(airports) {
           delete aircraft.dict
         }
 
+      console.log(nested);
+
+      //LOOP HERE to build many itinerary maps
+      var first_test="N3KUAA";
+      var first_test="N171US";
+      var itin=nested[first_test];
+      var ori=itin["origin"];
+      var prev=null;
+      var succession=[];
+      var all={};
+      var vals=itin["values"];
+
+      for (var i=0; i<vals.length; i++){
+
+        src=vals[i]["origin_airport"];dest=vals[i]["destination_airport"];
+
+        //Add the airports if they have not been seen yet
+        if (! all[src]){all[src]={}};
+        if (! all[dest]){all[dest]={}};
+
+        //Add flight to the succession
+        var add_src=airports_coords[src];
+        var add_dest=airports_coords[dest];
+
+
+        // if (typeof add_src==="undefined"){console.log(src)};
+        if (src===prev){
+
+          succession.push(add_dest);
+
+        }
+
+        else{      
+          //Add a dashed stroke attribute on a prev-->src transition here?
+        succession.push(add_src,add_dest);
+
+        }
+
+        prev=dest;
+        // svg.append("path")
+        //   .data([airports_coords[src],airports_coords[dest]])
+        //   .attr("d",lineFunction)
+      }
+
+    console.log(succession)
+
+    sub_airports=airports.filter(function(d){
+      return all[d.code];
+    })
+
+    // sub_airports.forEach(function(d) {
+    //   var coords = projection([d.lon, d.lat]);
+    //   d.x = coords[0];
+    //   d.y = coords[1];
+    // });
+
+
+    ///Airport draw
+      svg.selectAll("circle")
+        .data(sub_airports)
+        .enter()
+        .append("circle")
+        .attr("class","airport")
+        .attr("cx", function(d) {
+          return d.x;
+        })
+        .attr("cy", function(d) {
+          return d.y;
+        })
+
+
+      svg.append("path")
+        .attr("class","route")
+        //.selectAll("path.route")
+        .datum(succession)
+        // .enter()
+        .attr("d",line)
+
+
         //console.log(nested["N3KUAA"])
 
       /////DISPLAY ONE FLIGHT PATH//////
 
-      itin=nested[first_test]
-      ori=itin["origin"]
-      prev=ori
-      succession=[]
-      vals=itin["values"]
-
-      for (var i=0; i<vals.length; i++){
-
-        src=vals[i]["origin_airport"];dest=vals[i]["destination_airport"]
-        succession.push([src,dest])
-
-
-        // svg.append("path")
-        //   .data([airports_coords[src],airports_coords[dest]])
-        //   .attr("d",lineFunction)
-
-      }
-
       //svg.append("path")
       //  .data()
-      trr=[airports_coords[succession[2][0]],airports_coords[succession[1][1]]]
+      // trr=[airports_coords[succession[2][0]],airports_coords[succession[1][1]]]
 
 
-      svg.append("path")
-        .data(trr)
-        .attr("class","line")
-        .attr("d",lineFunction)
-      //console.log(airports_coords[succession[1][1]])
-      console.log(trr)
-      //console.log(succession)
+      // svg.append("path")
+      //   .data(trr)
+      //   .attr("class","line")
+      //   .attr("d",lineFunction)
+      // //console.log(airports_coords[succession[1][1]])
+      // console.log(trr)
+      // //console.log(succession)
 
-      })
   });
 
-
+    });
+ 
+ 
   //console.log(key_one)
 
   </script>

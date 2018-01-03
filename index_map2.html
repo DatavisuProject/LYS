@@ -1,0 +1,211 @@
+<!-- Taken from https://bl.ocks.org/sjengle/2e58e83685f6d854aa40c7bc546aeb24
+Taken out tooltip.js script link, interior/exterior border diff. -->
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+
+body {
+  background-color: white;
+  text-align: center;
+  font-family: sans-serif;
+}
+
+.land {
+  fill: #dddddd;
+}
+
+.border {
+  fill: none;
+  stroke-width: 1px;
+  stroke: white;
+}
+
+.interior {
+  stroke: white;
+}
+
+.exterior {
+  stroke: #bbbbbb;
+}
+
+/* shadow trick from bl.ocks.org */
+#tooltip {
+  font-size: 10pt;
+  font-weight: 900;
+  fill: white;
+  text-shadow: 1px 1px 0 #252525, 1px -1px 0 #252525, -1px 1px 0 #252525, -1px -1px 0 #252525;
+}
+
+</style>
+
+<svg width="960" height="500"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script src="https://d3js.org/topojson.v1.min.js"></script>
+<script>
+
+// adjust links to original data sources
+var urls = {
+  //air: "https://gist.githubusercontent.com/mbostock/7608400/raw/airports.csv",
+  air: "data/airports_US.csv",
+  usa: "data/us-coords.json",
+  flights: "data/adapted_flights.csv"
+  //usa: "https://gist.githubusercontent.com/mbostock/4090846/raw/us.json"
+};
+
+var svg = d3.select("svg");
+var plot = svg.append("g").attr("id", "plot");
+
+var width  = +svg.attr("width");
+var height = +svg.attr("height");
+
+var radius = {min: 6, max: 12};
+
+// placeholder for state data once loaded
+var states = null;
+
+// only focus on the continental united states
+// https://github.com/d3/d3-geo#geoAlbers
+var projection = d3.geoAlbers();
+
+// trigger map drawing
+d3.json(urls.usa, drawMap);
+
+var nested=processFlights(urls.flights);
+
+var airport="N3AAA";
+
+var airports={}
+
+d3.csv(urls.air,function(airports){  airports.forEach(function(d) {
+    var coords = projection([d.longitude, d.latitude]);
+    d.x = coords[0];
+    d.y = coords[1];
+
+    
+var byiata = d3.map(airports, function(d) { return d.iata; });
+
+drawItinerary(byiata.values());
+  });});
+
+console.log(airports)
+
+
+/*
+ * draw the continental united states
+ */
+function drawMap(error, map) {
+  // determines which ids belong to the continental united states
+  // https://gist.github.com/mbostock/4090846#file-us-state-names-tsv
+  var isContinental = function(d) {
+    var id = +d.id;
+    return id < 60 && id !== 2 && id !== 15;
+  };
+
+  // filter out non-continental united states
+  var old = map.objects.states.geometries.length;
+  map.objects.states.geometries = map.objects.states.geometries.filter(isContinental);
+  console.log("Filtered out " + (old - map.objects.states.geometries.length) + " states from base map.");
+
+  // size projection to fit continental united states
+  // https://github.com/topojson/topojson-client/blob/master/README.md#feature
+  states = topojson.feature(map, map.objects.states);
+  projection.fitSize([width, height], states);
+
+  // draw base map with state borders
+  var base = plot.append("g").attr("id", "basemap");
+  var path = d3.geoPath(projection);
+
+    //Draw map
+    base.append("path")
+      .datum(states)
+      .attr("class", "land")
+      .attr("d", path);
+
+
+    //Draw borders
+    base.append("path")
+      .datum(topojson.mesh(map, map.objects.states))
+      .attr("class", "border")
+      .attr("d", path);
+
+    // d3.queue()
+    // .defer(d3.csv, urls.air, typeAirport)
+    // .await(filterData,"Brice");
+
+  }
+
+
+function typeAirport(d) {
+  d.longitude = +d.longitude; //I Don't see what the + is doing here
+  d.latitude = +d.latitude;
+  return d;
+}
+
+  function loadData(error, airports) {
+  if(error) throw error;
+
+
+  // calculate projected x, y pixel locations
+
+
+  };
+
+
+  function drawItinerary(airports) {
+
+    plot.append("g").attr("id", "airports")
+    .selectAll("circle.airport")
+    .data(airports)
+    .enter()
+    .append("circle")
+    .attr("r",5)
+    .attr("cx", function(d) { return d.x; })
+    .attr("cy", function(d) { return d.y; })
+    .style("fill", "white")
+    .style("opacity", 0.6)
+    .style("stroke", "#252525")
+  };
+
+
+  function processFlights(flights){
+
+    var nested = {}
+
+    d3.csv(flights, function(data){
+      /*var nested = d3.nest()
+        .key(function(d) { return d.tail_number; })
+        .entries(data);*/ // on préfère avoir un objet javascript plutôt qu'un array
+      for(var k=1 ; k < data.length ; k++){
+        d = data[k];
+        if(nested[d.tail_number]  )
+          nested[d.tail_number].values.push(d);
+        else
+          nested[d.tail_number] = { "values" : [d], "dict" : {} };
+        val = nested[d.tail_number]
+        dest = d.destination_airport
+        src= d.origin_airport
+        val.dict[dest] = val.dict[dest]+1 || 1
+        val.dict[src] = val.dict[src]+1 || 1
+      }
+
+      for(var i in nested){//On cherche l'aéroport de base de l'avion
+        aircraft = nested[i]
+        cpt=0
+        for(airport in aircraft.dict){
+          if(aircraft.dict[airport] >= cpt){
+            cpt=aircraft.dict[airport]
+            winner = airport
+          }
+        }
+        nested[i].number = aircraft.dict[winner]
+        nested[i].origin = winner // On sauvegarde le meilleur
+        delete aircraft.dict
+      }
+
+    })
+
+    return nested;
+  }
+
+</script>
