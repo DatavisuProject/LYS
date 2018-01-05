@@ -46,19 +46,25 @@ columns =[
 	"distance",
 	"diverted",
 	"cancelled",
-	"scheduled_time"
+	"elapsed_time",
 ]
 
 columnsTime = [
-	"scheduled_departure",
-	"scheduled_arrival"
+	"departure_time",
+	"arrival_time"
 ]
 
+
+def mytime(value):
+	v = value[:2]
+	if v == "00":
+		v="24"
+	return v+":"+value[2:]+":00" 
 
 def preprocess():
 	import csv 
 	data = []
-	data.append(["day"]+columns+columnsTime)
+	data.append(["day","delay"]+columns+columnsTime)
 
 	with open('data/flights.csv', newline='') as f:
 		reader = csv.reader(f)
@@ -66,24 +72,36 @@ def preprocess():
 		cpt=0
 		for row in reader:
 			if row[ColNum["tail_number"]] == "":
-				continue
-				
+				continue			
 			newdata=[]
 			if int(row[ColNum["month"]]) > 1:
 				break
-			cpt= +cpt+1
+			cpt= cpt+1
 			day = date(int(row[ColNum["year"]]),int(row[ColNum["month"]]),int(row[ColNum["day"]]))
+			delay = int(row[ColNum["arrival_delay"]]) - int(row[ColNum["departure_delay"]]) if row[ColNum["arrival_delay"]] !="" else 0
 			newdata.append(str(day))
+			newdata.append(str(delay))
 			for col in columns :
-				newdata.append(row[ColNum[col]])
+				if col != "elapsed_time":
+					newdata.append(row[ColNum[col]])
+				else : 
+					newdata.append(row[ColNum[col]]) if row[ColNum[col]] != "" else newdata.append(row[ColNum["scheduled_time"]])
 			for col in columnsTime:
 				value = row[ColNum[col]]
-				hour = time(int(value[:1]),int(value[2:]))
+				if col == "departure_time": 
+					if value != "" :
+						hour = mytime(value)
+					else:
+						hour = mytime(row[ColNum["scheduled_departure"]])							
+				elif col == "arrival_time": 
+					hour = mytime(value) if value != "" else mytime(row[ColNum["scheduled_arrival"]])
+				else :
+					hour = mytime(value)
 				newdata.append(str(hour))
 
 			data.append(newdata)
-	print(data[len(data)-1])
-	with open('data/adapted_flights.csv', 'w', newline='') as f:
+	print(data[1])
+	with open('data/adapted_flights2.csv', 'w', newline='') as f:
 	    writer = csv.writer(f)
 	    writer.writerows(data)
 
