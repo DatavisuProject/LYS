@@ -180,7 +180,7 @@ function itineraire(aircraft, dateMin, dateMax){
                     time: total_time,
                     name: val.origin_airport,
                     delay:0,
-                    distance:val.distance
+                    distance:0
                 });
                 if( !keys[val.origin_airport]){
                     keys[val.origin_airport] = true ;
