@@ -27,21 +27,35 @@
     }*/
 
 
+
     #vis {
-        width: 100%;
-        max-width: 960px;
-        margin: 20 auto;
+      position: relative;
+      top: 20px;
+      padding-bottom: 20px;
     }
 
     #vis div {
         float: left;
         position: relative;
+        padding-bottom: 20px;
     }
 
-    #vis p.legend {
-      width: 100%;
+    #vis p{
+      float: center;
+      position: relative;
+/*      left: 200px;
+*/    }
+
+    p.relative{
+      position: relative;
+      left: 40px;
+      top: 10px;
+    }
+
+    #vis p.relative {
+      /*width: 100%;*/
       /*font-weight: bold;*/
-      font-size: 12px;
+      font-size: 13px;
     }
 
     .route {
@@ -98,9 +112,13 @@
 
 <script>
 
+var width_maps = 220,
+    height_maps = 170;
+
 var margin = {top: 20, right: 30, bottom: 20, left: 100},
-    width = 960 - margin.left - margin.right,
+    width = 960 - margin.left - margin.right;
     height = 500 - margin.top - margin.bottom;
+
 
 
 Date.prototype.addMinutes = function(minutes) {
@@ -173,10 +191,6 @@ rect.on("click",function(){
 });
 
 
-var width_maps = 200,
-	  height_maps = 150;
-
-
 ///////MAP BUILDING//////
 
 var projection = d3.geoAlbers() // d3.geo.albersUsa avec d3 version 3
@@ -209,7 +223,7 @@ d3.queue()
 //Main function here: draws the mini-maps and the Marey.
 function visualise(error,airports,flights,states){
 
-  projection.fitSize([width_maps,height_maps],states); //This line fits the geoJSON into given dimensions.
+  projection.fitSize([width_maps-35,height_maps-40],states); //This line fits the geoJSON into given dimensions.
 
   /////Parse flights data////
   var nested=groupByAvion(flights);
@@ -253,7 +267,7 @@ function visualise(error,airports,flights,states){
     });
 
 
-  var to_draw=tail_numbers.slice(0,6) //Put here the number of mini-maps you want to draw
+  var to_draw=tail_numbers.slice(0,8) //Put here the number of mini-maps you want to draw
 
 
   to_draw.forEach(function(itin,i){
@@ -282,19 +296,21 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
 
   wrapper.append('p')
             .text(itin_name)
-            .attr('class', 'legend');
+            .attr('class', 'relative');
 
   var svg_maps = wrapper.append('svg');
 
   svg_maps.attr({
           width_maps: width_maps,
           height_maps: height_maps
-      });
+      })
 
-        console.log(itin_data);
-        console.log(itin_data.values[0])
+  g_maps= svg_maps.append("g");
+  g_maps.attr("transform", "translate(" +margin.left/4+ "," + margin.top + ")");
+
+
   //On abonne un click sur la map à la génération de la Marey_map correspondante
-  svg_maps.on("click",function(){
+  g_maps.on("click",function(){
 
       itineraire(itin_data,slider.dateRangeSlider("min"),slider.dateRangeSlider("max"));
       slider.bind("valuesChanged", function(e, data){
@@ -306,7 +322,7 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
 
 
   ///Draw the map////
-  svg_maps.selectAll("path")
+  g_maps.selectAll("path")
     .data(states.features)
     .enter()
     .append("path")
@@ -362,7 +378,7 @@ sub_airports=airports.filter(function(d){
 
 
 ///Airport draw
-  svg_maps.selectAll("circle")
+  g_maps.selectAll("circle")
     .data(sub_airports)
     .enter()
     .append("circle")
@@ -375,7 +391,7 @@ sub_airports=airports.filter(function(d){
     })
 
 
-  svg_maps.append("path")
+  g_maps.append("path")
     .attr("class","route")
     //.selectAll("path.route")
     .datum(succession)
