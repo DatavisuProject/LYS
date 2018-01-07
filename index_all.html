@@ -171,8 +171,8 @@ var slider = $("#slider")
     .css("margin-left", margin.left)
     .css("margin-right", margin.right)
     .dateRangeSlider({
-        bounds: {min: new Date(2015, 0, 1), max: new Date(2015, 1, 31, 12, 59, 59)},
-        defaultValues: {min: new Date(2015, 0, 1), max: new Date(2015, 0 ,25, 12, 59, 59)},
+        bounds: {min: new Date(2015, 0, 1), max: new Date(2015, 0, 31, 12, 59, 59)},
+        defaultValues: {min: new Date(2015, 0, 9), max: new Date(2015, 0 ,13, 12, 59, 59)},
         scales: [
             // Primary scale, on peut régler par mois
             /*{
@@ -233,7 +233,7 @@ rect.on("click",function(){
     var mean = Math.round(( min+max)/ 2) ;
     var difference = zoom - mean ;
     var diffDay = new Date(difference);
-    var ecart = dateDiff(diffDay).day/2;
+    var ecart = dateDiff(diffDay).day*10;
     slider.dateRangeSlider('scrollRight', ecart);
 
     //slider.dateRangeSlider("zoomIn", zoom);
@@ -475,7 +475,7 @@ function itineraire(aircraft, dateMin, dateMax){
 
       if(previous != undefined){ // Temps dans l'aéroport
           var d2 = parseTime(val.day+"|"+val.departure_time);
-          total_time = total_time.addMilliseconde(d2.getTime()-previous.getTime());
+          total_time = total_time.addMilliseconde((d2.getTime()-previous.getTime())%(1000*60*60*24));
           if( total_time <= dateMax && total_time >= dateMin) {
               last = total_time;
               if(!ft)
@@ -492,7 +492,12 @@ function itineraire(aircraft, dateMin, dateMax){
                   airports.push({ "distance" : dist, "name": val.origin_airport });
               }
           }
-          previous = parseTime(val.day+"|"+val.arrival_time);
+          //previous = parseTime(val.day+"|"+val.arrival_time);
+          /*var dat = parseDays(val.day);
+          if(total_time.getDate() > parseDays(val.day).getDate()) {
+              previous = new Date(parseTime(val.day + "|" + val.arrival_time).getTime() + (1000 * 60 * 60 * 24));
+          }else
+              previous = parseTime(val.day+"|"+val.arrival_time );*/
 
       }
       if( !ft && total_time <= dateMax && total_time >= dateMin) { // Gère le premier point
@@ -527,10 +532,12 @@ function itineraire(aircraft, dateMin, dateMax){
               airports.push({ "distance" : dist_dest, "name": val.destination_airport });
           }
       }
-      if(total_time.getDate() != parseDays(val.day).getDate()) {
+
+      /*var dat = parseDays(val.day);
+      if(total_time.getDate() > dat.getDate() && total_time.getTime() > dat.getTime()) {
           previous = new Date(parseTime(val.day + "|" + val.arrival_time).getTime() + (1000 * 60 * 60 * 24));
-      }else
-          previous = parseTime(val.day+"|"+val.arrival_time );
+      }else*/
+      previous = parseTime(val.day+"|"+val.arrival_time );
   }
   //slider.dateRangeSlider("bounds", ft, last);
 
