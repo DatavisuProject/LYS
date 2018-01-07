@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="utf-8">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/css/iThing.min.css">
+  <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  <script src="https://d3js.org/topojson.v1.min.js"></script>
+
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQDateRangeSlider.js"></script>-->
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSliderMouseTouch.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSliderDraggable.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSliderBar.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSliderHandle.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQDateRangeSliderHandle.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSliderLabel.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSlider.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQDateRangeSlider.js"></script>
+  <style>
+/*
+    body { 
+      margin:0;top:0;right:0;bottom:0;left:0; 
+    }*/
+
+
+    #vis {
+        width: 100%;
+        max-width: 960px;
+        margin: 20 auto;
+    }
+
+    #vis div {
+        float: left;
+        position: relative;
+    }
+
+    #vis p.legend {
+      width: 100%;
+      /*font-weight: bold;*/
+      font-size: 12px;
+    }
+
+    .route {
+      stroke: steelblue;
+      fill: none;
+    }
+
+    .airport_maps{
+      r:4;
+      fill: rgb(217,91,67);  
+      opacity: 0.85;
+    }
+
+    .airport text {
+        text-anchor: end;
+        font-size:10pt ;
+    }
+    .airport line {
+        stroke: #ddd;
+        stroke-dasharray: 1,1;
+        shape-rendering: crispEdges;
+    }
+
+    .axis line {
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+
+    .tooltip {
+        color: #222;
+        background-color: #fff;
+        padding: .5em;
+        text-shadow: #f5f5f5 0 1px 0;
+        border-radius: 2px;
+        opacity: 0.9;
+        position: absolute;
+    }
+    .hidden{
+        display : none;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<div id="slider"></div>
+
+<svg id="Marey" > </svg>
+
+<div id='vis'></div>
+
+</body>
+
+<script>
+
+var margin = {top: 20, right: 30, bottom: 20, left: 100},
+    width = 960 - margin.left - margin.right,
+    height = 500 - margin.top - margin.bottom;
+
+
+Date.prototype.addMinutes = function(minutes) {
+    return new Date(this.getTime() + minutes * 60000);
+};
+
+Date.prototype.addMilliseconde = function(mseconde){
+    return new Date(this.getTime() + mseconde);
+};
+
+var parseTime =  d3.timeParse("%Y-%m-%d|%H:%M:%S");
+var formatTime = d3.timeFormat("%d/%m \n %H:%M");
+
+var color = d3.scaleQuantize()
+    .range(["#f00a00",
+        "#ff6107",
+        "#ff9200",
+        "#ffb100",
+        "#ffdf00"]);
+
+var dist_ap = d3.scaleLinear()
+    .range([0, height-40]);
+
+var time_ap= d3.scaleLinear()
+    .range([0, width]);
+
+var tooltip = d3.select('body').append('div')
+        .attr('class', 'hidden tooltip');
+
+var slider = $("#slider")
+    .css("width" , width)
+    .css("margin-left", margin.left)
+    .css("margin-right", margin.right)
+    .dateRangeSlider({
+        bounds: {min: new Date(2015, 0, 1), max: new Date(2015, 1, 31, 12, 59, 59)},
+        defaultValues: {min: new Date(2015, 0, 1), max: new Date(2015, 0 ,25, 12, 59, 59)}
+    });
+
+
+var svg = d3.select( "svg" )
+    .attr( "width", width + margin.left )
+    .attr( "height", height )
+    .append("g")
+    .attr("transform", "translate(" +margin.left+ "," + margin.top + ")");
+
+
+var rect= svg.append("rect")
+    .attr("x", 0)
+    .attr("fill","white")
+    .attr("y", -margin.top)
+    .attr("width", width)
+    .attr("height", height - margin.top + margin.bottom)
+    .attr("stroke", "#ddd")
+;
+
+rect.on("click",function(){
+    var mouse = d3.mouse(rect.node()).map(function(d) {
+        return d;
+    });
+    var zoom = new Date(time_ap.invert(mouse[0]));
+    var min = slider.dateRangeSlider("min").getTime(),
+        max= slider.dateRangeSlider("max").getTime();
+    var mean = Math.round(( min+max)/ 2) ;
+    var difference = zoom - mean ;
+    var diffDay = new Date(difference);
+    var ecart = dateDiff(diffDay).day/2;
+    slider.dateRangeSlider('scrollRight', ecart);
+
+    //slider.dateRangeSlider("zoomIn", zoom);
+});
+
+
+var width_maps = 200,
+	  height_maps = 150;
+
+
+///////MAP BUILDING//////
+
+var projection = d3.geoAlbers() // d3.geo.albersUsa avec d3 version 3
+			 .translate([width_maps/2, height_maps/2])
+
+
+var path = d3.geoPath() // d3.geo.path avec d3 version 3
+             .projection(projection);
+
+
+var data_paths={
+  air: "data/airports_US.csv",
+  usa: "data/us-states.json",
+  flights: "data/adapted_flights2.csv"
+};
+
+
+var line_maps = d3.line()
+                 .x(function(d) { return d.x })
+                 .y(function(d) { return d.y })
+
+//Load up the data
+d3.queue()
+  .defer(d3.csv,data_paths.air)
+  .defer(d3.csv,data_paths.flights)
+  .defer(d3.json,data_paths.usa)
+  .await(visualise);
+
+
+//Main function here: draws the mini-maps and the Marey.
+function visualise(error,airports,flights,states){
+
+  projection.fitSize([width_maps,height_maps],states); //This line fits the geoJSON into given dimensions.
+
+  /////Parse flights data////
+  var nested=groupByAvion(flights);
+
+
+  /////Parse airports data///////
+  var airports_coords={};
+
+
+  //Assign each airport coordinates inside the airports data structure
+  //And store those coordinates in a JS object for use in path drawing
+  for (var k=1;k<airports.length;k++){
+
+    d=airports[k];
+
+    var coords = projection([d.lon, d.lat]);
+      d.x = coords[0];
+      d.y = coords[1];
+
+    airports_coords[d.code]={"x":d.x,"y":d.y}
+
+  }
+
+  tail_numbers=Object.keys(nested) //Get all the tail numbers
+
+  d_air = {};
+  for(var i = 0 ; i < airports.length ; i++){
+    d_air[airports[i].code]=airports[i] ;
+  }
+
+  //Itinéraire :
+  var choose =tail_numbers[0]; //Premier itinéraire à montrer dès le départ ici.
+  //var choose = "N407AS";
+  var aircraft = nested[choose];
+
+  itineraire(aircraft,slider.dateRangeSlider("min"),slider.dateRangeSlider("max"));
+  slider.bind("valuesChanged", function(e, data){
+
+      itineraire(nested[choose], data.values.min, data.values.max);
+
+    });
+
+
+  var to_draw=tail_numbers.slice(0,6) //Put here the number of mini-maps you want to draw
+
+
+  to_draw.forEach(function(itin,i){
+
+    var visualizationWrapper = d3.select('#vis'); //Merci à http://bl.ocks.org/chrtze/440f276856cf707963f5
+
+    // console.log(visualizationWrapper);
+
+    var wrapper = visualizationWrapper
+                .append('div');
+
+    wrapper.style({
+                    width_maps: width_maps + 'px',
+                    height_maps: height_maps + 'px'
+                });
+
+    createMap(wrapper, airports, airports_coords, nested[itin], itin, states);
+
+  });
+
+}
+
+function createMap(wrapper, airports, airports_coords, itin_data, itin_name, states){
+
+  // console.log(wrapper);
+
+  wrapper.append('p')
+            .text(itin_name)
+            .attr('class', 'legend');
+
+  var svg_maps = wrapper.append('svg');
+
+  svg_maps.attr({
+          width_maps: width_maps,
+          height_maps: height_maps
+      });
+
+        console.log(itin_data);
+        console.log(itin_data.values[0])
+  //On abonne un click sur la map à la génération de la Marey_map correspondante
+  svg_maps.on("click",function(){
+
+      itineraire(itin_data,slider.dateRangeSlider("min"),slider.dateRangeSlider("max"));
+      slider.bind("valuesChanged", function(e, data){
+
+      itineraire(itin_data, data.values.min, data.values.max);
+
+    });
+  });
+
+
+  ///Draw the map////
+  svg_maps.selectAll("path")
+    .data(states.features)
+    .enter()
+    .append("path")
+    .style("stroke", "#fff") //Creates borders
+    .attr("stroke-width", 0.3)
+    .style("fill", "Moccasin") //Specify map colour
+    .attr("d", path);
+
+
+  ////Add the airports and the path itinerary////
+  var prev=null;
+  var succession=[];
+  var all={};
+  var vals=itin_data["values"];
+
+  for (var i=0; i<vals.length; i++){
+
+    src=vals[i]["origin_airport"];dest=vals[i]["destination_airport"];
+
+    //Add the airports if they have not been seen yet
+    if (! all[src]){all[src]={}};
+    if (! all[dest]){all[dest]={}};
+
+    //Add flight to the succession
+    var add_src=airports_coords[src];
+    var add_dest=airports_coords[dest];
+
+
+    // if (typeof add_src==="undefined"){console.log(src)};
+    if (src===prev){
+
+      succession.push(add_dest);
+
+    }
+
+    else{      
+      //Add a dashed stroke attribute on a prev-->src transition here?
+    succession.push(add_src,add_dest);
+
+    }
+
+    prev=dest;
+    // svg.append("path")
+    //   .data([airports_coords[src],airports_coords[dest]])
+    //   .attr("d",lineFunction)
+  }
+
+// console.log(succession)
+
+sub_airports=airports.filter(function(d){
+  return all[d.code];
+})
+
+
+///Airport draw
+  svg_maps.selectAll("circle")
+    .data(sub_airports)
+    .enter()
+    .append("circle")
+    .attr("class","airport_maps")
+    .attr("cx", function(d) {
+      return d.x;
+    })
+    .attr("cy", function(d) {
+      return d.y;
+    })
+
+
+  svg_maps.append("path")
+    .attr("class","route")
+    //.selectAll("path.route")
+    .datum(succession)
+    // .enter()
+    .attr("d",line_maps)
+}
+
+
+
+function itineraire(aircraft, dateMin, dateMax){
+  svg.selectAll("g .airport").remove();
+  svg.selectAll(".circle").remove();
+  svg.selectAll(".line").remove();
+  svg.selectAll(".axe").remove();
+  svg.selectAll(".axe2").remove();
+
+  var airports = [];
+  var aircrafts = [];
+  var center = aircraft.origin ;
+  var keys = {};
+  var total_time = parseTime(aircraft.values[0].day + "|" + aircraft.values[0].departure_time);
+  var previous = undefined ;
+  for(i = 0 ; i < aircraft.values.length ; i++){ // Calcule des distances depuis la géolocalisation
+      var val = aircraft.values[i] ;
+      if(val.cancelled != "0")
+          continue;
+
+      var dist = Math.round(distance(center,val.origin_airport)) ;
+      if(previous != undefined){ // Temps à dans l'aéroport
+          var d2 = parseTime(val.day+"|"+val.departure_time);
+          total_time = total_time.addMilliseconde(d2.getTime()-previous.getTime());
+          if( total_time <= dateMax && total_time >= dateMin) {
+              var last = total_time;
+              if(!ft)
+                  var ft = total_time ;
+              aircrafts.push({
+                  distanceOrigin: dist,
+                  time: total_time,
+                  name: val.origin_airport,
+                  delay:0,
+                  distance:0
+              });
+              if( !keys[val.origin_airport]){
+                  keys[val.origin_airport] = true ;
+                  airports.push({ "distance" : dist, "name": val.origin_airport });
+              }
+          }
+          previous = parseTime(val.day+"|"+val.arrival_time);
+
+      }
+      total_time = total_time.addMinutes(val.elapsed_time) ;
+      if( total_time <= dateMax && total_time >= dateMin) { //temps du voyage jusqu'à cet aéroport
+          var last = total_time;
+          if(!ft)
+              var ft = total_time ;
+          aircrafts.push({
+              distanceOrigin: dist,
+              time: total_time,
+              name: val.origin_airport,
+              delay:parseInt(val.delay),
+              distance:val.distance
+          });
+          if( !keys[val.origin_airport]){
+              keys[val.origin_airport] = true ;
+              airports.push({ "distance" : dist, "name": val.origin_airport });
+          }
+      }
+      previous = parseTime(val.day+"|"+val.arrival_time);
+
+  }
+  dist_ap.domain([0,d3.max(aircrafts, function(d) { return d.distanceOrigin; })]);
+  time_ap.domain([ft,last]);
+  color.domain([-40,40]);
+
+  var xAxis = d3.axisTop()
+      .scale(time_ap)
+      .ticks(8)
+      .tickFormat(formatTime);
+
+  var xAxisB = d3.axisBottom()
+      .scale(time_ap)
+      .ticks(8)
+      .tickFormat(formatTime);
+
+  svg.append("g")
+      .attr("class","axe")
+      .call(xAxis);
+
+  svg.append("g")
+      .attr("class","axe2")
+      .attr("transform", "translate(0," +(height-40) + ")")
+      .call(xAxisB);
+
+  airports.sort(function(a,b){return a.distance > b.distance ? 1 : -1});
+  var airport = svg.append("g") // Créé les div de chaque aéroport sur la gauche
+      .attr("class", "airport")
+      .selectAll("g")
+      .data(airports)
+      .enter()
+      .append("g")
+      .attr("transform", function(d){return "translate(0," + dist_ap(d.distance) + ")"; });
+
+  var tmp = {} ;
+  airport.append("text") // Affiche les noms des aéroports
+      .attr("x", -6)
+      .attr("dx",function(d) { // Décalage vers la gauche pour éviter le chevauchement
+          var dist = Math.round(d.distance / 40) * 40;
+          tmp[dist] = tmp[dist]+1 || 1;
+          return (-tmp[dist]+1)*30;
+      })
+      .attr("dy", ".35em")
+      .text(function(d) { return d.name; })
+      .on("mouseover",function(d,i){
+          displayMouse(d_air[d.name].name);
+      })
+      .on("mouseout",function(d,i){
+          tooltip.classed("hidden",true);
+      });
+
+  airport.append("line") // Lignes horizontales
+      .attr("x2", width);
+
+  line = d3.line()
+      .x(function(d) { return time_ap(d.time); })
+      .y(function(d) { return dist_ap(d.distanceOrigin); });
+
+  var segmented = segment(aircrafts);
+  var airplane = svg.selectAll(".line") // Lignes de trajets
+      .data(segmented)
+      .enter()
+      .append("path")//.data(aircraft.values)
+      .attr("class","line")
+      .attr("stroke", function(d){ return color(d[0].delay); })
+      //.style("stroke", function(d){return color(d.delay)})
+      .attr("stroke-width", 1.5)
+      .attr("fill","none")
+      .attr("d", line)
+      .on("mouseover",function(d,i){
+          displayMouse(d[0].distance+" kms parcourus");
+      })
+      .on("mouseout",function(d,i){
+          tooltip.classed("hidden",true);
+      });
+
+
+  svg.selectAll(".circle") // Point de rebondissement
+      .data(aircrafts)
+      .enter()
+      .append("circle")
+      .attr("fill", "steelblue")
+      .attr("class","circle")
+      .attr("transform", function(d) { return "translate(" + time_ap(d.time) + "," + dist_ap(d.distanceOrigin) + ")"; })
+      .attr("r", 3)
+      .on("mouseover",function(d,i){
+          displayMouse(d_air[d.name].name+" "+formatTime(d.time));
+      })
+      .on("mouseout",function(d,i){
+          tooltip.classed("hidden",true);
+      });
+}
+
+      /** Converts numeric degrees to radians */
+if (typeof(Number.prototype.toRad) === "undefined") {
+    Number.prototype.toRad = function() {
+        return this * Math.PI / 180;
+    }
+}
+
+
+/*
+Merci à https://stackoverflow.com/questions/13840516/how-to-find-my-distance-to-a-known-location-in-javascript
+*/
+function distance(code1,code2) {
+    var lon1 = parseFloat(d_air[code1].lon),
+        lat1 = parseFloat(d_air[code1].lat),
+        lon2= parseFloat(d_air[code2].lon),
+        lat2= parseFloat(d_air[code2].lat);
+
+    var R = 6371; // Radius of the earth in km
+    var dLat = (lat2-lat1).toRad();  // Javascript functions in radians
+    var dLon = (lon2-lon1).toRad();
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1.toRad()) * Math.cos(lat2.toRad()) *
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    var d = R * c; // Distance in km
+    return d;
+}
+
+
+function groupByAvion(data){
+  var nested = {};
+  for(var k=0 ; k < data.length ; k++){
+      d = data[k];
+      if(nested[d.tail_number]  )
+          nested[d.tail_number].values.push(d);
+      else
+          nested[d.tail_number] = { "values" : [d], "dict" : {} };
+      val = nested[d.tail_number];
+      dest = d.destination_airport;
+      src= d.origin_airport;
+      val.dict[dest] = val.dict[dest]+1 || 1;
+      val.dict[src] = val.dict[src]+1 || 1;
+  }
+
+  for(var i in nested){//On cherche l'aéroport de base de l'avion
+      aircraft = nested[i];
+      var cpt=0;
+      for(airport in aircraft.dict){
+          if(aircraft.dict[airport] >= cpt){
+              cpt=aircraft.dict[airport];
+              var winner = airport
+          }
+      }
+      nested[i].number = aircraft.dict[winner];
+      nested[i].origin = winner; // On sauvegarde le meilleur
+      delete aircraft.dict
+  }
+  return nested
+}
+
+
+function segment(data){
+    var res = [];
+    for(var i =0;i<data.length-1 ; i++){
+        res.push([ data[i],data[i+1]]);
+    }
+    return res ;
+}
+
+function displayMouse(text){
+    var mouse = d3.mouse(svg.node()).map(function(d) {
+        return d;
+    });
+    tooltip.classed('hidden', false)
+        .attr('style', 'left:' + (mouse[0] + margin.left) +
+            'px; top:' + (mouse[1] + 2*margin.top) + 'px')
+        .html(text);
+}
+
+/*
+Merci http://www.finalclap.com/faq/88-javascript-difference-date
+ */
+function dateDiff(date){
+    var diff = {};                         // Initialisation du retour
+    var tmp = date ;
+
+    tmp = Math.floor(tmp/1000);             // Nombre de secondes entre les 2 dates
+    diff.sec = tmp % 60;                    // Extraction du nombre de secondes
+
+    tmp = Math.floor((tmp-diff.sec)/60);    // Nombre de minutes (partie entière)
+    diff.min = tmp % 60;                    // Extraction du nombre de minutes
+
+    tmp = Math.floor((tmp-diff.min)/60);    // Nombre d'heures (entières)
+    diff.hour = tmp % 24;                   // Extraction du nombre d'heures
+
+    tmp = Math.floor((tmp-diff.hour)/24);   // Nombre de jours restants
+    diff.day = tmp;
+
+    return diff;
+}
+
+</script>
