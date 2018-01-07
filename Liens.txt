@@ -1,1 +1,22 @@
-Liens vers des représentations :
+Liens vers des représentations/Idées pour notre projet :
+
+-Flux de vents: http://hint.fm/wind/
+Animation des flux aériens?
+-Chloropleths
+Coloriage des régions par flux d’avions
+-Bubble map: https://bost.ocks.org/mike/bubble-map/
+Une bulle par aéroport
+
+
+###Voir les avions un par un transiter
+
+http://www.tnoda.com/blog/2014-04-02
+
+C’est du D3.
+
+
+#####Preprocessing/Données####
+
+Types de routines de vols: 
+
+https://aviation.stackexchange.com/questions/8991/on-how-many-routes-an-aircraft-is-used-on-a-typical-day

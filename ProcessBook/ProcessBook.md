@@ -5,7 +5,7 @@ Process Book
 
 ----------
 
-## Semaine 1 (16 au 23 novembre)
+## Semaine 1 (16 au 23 novembre 2017)
 
 ### Objectifs à remplir
 
@@ -57,7 +57,7 @@ Les designs de ces visualisations sont disponibles dans le dossier « DesignShee
 
 ----------
 
-## Semaine 2 (23 au 30 novembre)
+## Semaine 2 (23 au 30 novembre 2017)
 
 ### Objectifs à remplir
 
@@ -68,7 +68,7 @@ Les designs de ces visualisations sont disponibles dans le dossier « DesignShee
 
 ### Jeux de données
 Nous avons pu obtenir les données demandées au Grand Lyon le 26 novembre. Malheureusement, elles ne correspondent pas à nos attentent puisqu’il s’agit de données en temps réelles et non d’un historique. Après de nombreuses recherches nous n’avons pu trouver les données que nous espérions : l’historique des vols à l’arrivée et au départ de l’aéroport Saint-Exupéry.
-Finalement, nous avons pu trouver des données de vols qui se rapprochent de ce que nous voulions pour Lyon sur le site Kaggle (https://www.kaggle.com/freddejn/flights/data). Il s’agit d’un historique de vols aux Etats-Unis de ? à 2015. 
+Finalement, nous avons pu trouver des données de vols qui se rapprochent de ce que nous voulions pour Lyon sur le site Kaggle (https://www.kaggle.com/freddejn/flights/data). Il s’agit d’un historique de vols aux Etats-Unis de 2015. 
 
 
 ### Design de visualisation
@@ -80,3 +80,44 @@ Finalement, nous avons pu trouver des données de vols qui se rapprochent de ce 
 
 ### Article scientifique
 La première version de notre article est disponible dans le dossier « Article ». Il nous a permis de finaliser le cadrage du projet, d’identifier les travaux importants liés au projet et de proposer les premières pistes de conception. 
+
+
+----------
+
+## Semaine 3 (30 novembre au 7 décembre 2017)
+
+### Objectifs à remplir
+- Rédaction peer review
+
+### Peer review
+Nous avons réalisé une critique de l'article scientifique rédigé par le groupe 9 (reformulation du problème, état de l'art et propositions). 
+Le résultat de cette analyse est disponible sur le Google document https://docs.google.com/spreadsheets/d/1np6Qo-42TQ5IjShXn9ylVW90sb24cR31yQ20aLQc-7g/edit#gid=321460824.
+
+
+----------
+
+## Semaine 4 (7 au 14 décembre 2017)
+
+### Objectifs à remplir
+- Evolution de la problématique : nouveau sujet
+
+
+### Problématique du projet
+Après discussion avec notre encadrant (Romain Vuillemot), nous nous sommes rendus compte que notre problématique était trop vague et que les réalisations que nous comptions faire existaient déjà. Cette semaine a permis de commencer à trouver un autre sujet et de réfléchir aux nouvelles visualisations envisageable. 
+Nous gardons le jeu de données sur les vols aériens au USA puisque celui-ci est très bien fourni. Mais nous avons décidé de tourner le problème dans un autre sens : plutôt que de se placer côté passager, nous allons étudier les déplacements des avions.
+
+
+----------
+
+## Semaine 5 (14 au 21 décembre 2017)
+
+### Objectifs à remplir
+- Définir des visualisations
+
+
+### Visualisations
+Comme il a été expliqué précédemment, nous avons complètement changé de sujet (mais en gardant les mêmes données). Il a donc fallu trouver de nouvelles visualisations intéressantes à développer pour répondre à notre problématique :  quels sont les différents patterns d'itinéraires des vols aux USA ?
+Pour cela nous avons identifier deux visualisations. La première donnerais un aperçu de l'itinéraire des avions sur des cartes des Etats-Unis. On aurait donc un panel avec une multitudes de petites cartes. La deuxième permettrait de visualiser plus en détail l'itinéraire avec une information temporelle supplémentaire (exemple avec des trains : https://bl.ocks.org/mbostock/5544008).
+
+![Marey's train](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture5.PNG)
+
