@@ -1,5 +1,5 @@
 import csv
-from datetime import date,time
+from datetime import *
 import numpy as np 
 
 
@@ -57,14 +57,14 @@ columnsTime = [
 
 def mytime(value):
 	v = value[:2]
-	if v == "00":
-		v="24"
+	#if v == "00":
+	#	v="24"
 	return v+":"+value[2:]+":00" 
 
 def preprocess():
 	import csv 
 	data = []
-	data.append(["day","delay"]+columns+columnsTime)
+	data.append(["delay"]+columns+columnsTime+["day"])
 
 	with open('data/flights.csv', newline='') as f:
 		reader = csv.reader(f)
@@ -77,9 +77,11 @@ def preprocess():
 			if int(row[ColNum["month"]]) > 1:
 				break
 			cpt= cpt+1
-			day = date(int(row[ColNum["year"]]),int(row[ColNum["month"]]),int(row[ColNum["day"]]))
+			day = int(row[ColNum["day"]])
+			year = int(row[ColNum["year"]])
+			month=int(row[ColNum["month"]])
+			actualdate = date(year,month,day)
 			delay = int(row[ColNum["arrival_delay"]]) - int(row[ColNum["departure_delay"]]) if row[ColNum["arrival_delay"]] !="" else 0
-			newdata.append(str(day))
 			newdata.append(str(delay))
 			for col in columns :
 				if col != "elapsed_time":
@@ -90,7 +92,15 @@ def preprocess():
 				value = row[ColNum[col]]
 				if col == "departure_time": 
 					if value != "" :
-						hour = mytime(value)
+						t = datetime(int(row[ColNum["year"]]),int(row[ColNum["month"]]),int(row[ColNum["day"]]),int(row[ColNum["scheduled_departure"]][:2]),int(row[ColNum["scheduled_departure"]][2:]))
+						#t2 = datetime(int(row[ColNum["year"]]),int(row[ColNum["month"]]),int(row[ColNum["day"]]),row[ColNum["departure_time"]][:2],row[ColNum["departure_time"]][2:])
+						if row[ColNum["departure_delay"]] !="" :
+							a = int(row[ColNum["departure_delay"]])
+						else:
+							a= 0
+						tmp = t + timedelta(minutes = a)
+						actualdate = date(tmp.year, tmp.month, tmp.day )
+						hour = str(tmp.hour)+":"+str(tmp.minute)+":00"
 					else:
 						hour = mytime(row[ColNum["scheduled_departure"]])							
 				elif col == "arrival_time": 
@@ -98,7 +108,7 @@ def preprocess():
 				else :
 					hour = mytime(value)
 				newdata.append(str(hour))
-
+			newdata.append(str(actualdate))
 			data.append(newdata)
 	print(data[1])
 	with open('data/adapted_flights2.csv', 'w', newline='') as f:

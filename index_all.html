@@ -20,6 +20,7 @@
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSliderLabel.js"></script>
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRangeSlider.js"></script>
   <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQDateRangeSlider.js"></script>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jQRangeSlider/5.7.2/jQRuler.min.js"></script>
   <style>
 /*
     body { 
@@ -29,19 +30,20 @@
 
 
     #vis {
-      position: relative;
+      float:left ;
       top: 20px;
       padding-bottom: 20px;
+      width : 450px;
     }
 
     #vis div {
         float: left;
         position: relative;
         padding-bottom: 20px;
+        width : 220px ;
     }
 
     #vis p{
-      float: center;
       position: relative;
 /*      left: 200px;
 */    }
@@ -50,6 +52,7 @@
       position: relative;
       left: 40px;
       top: 10px;
+      width : 50px ;
     }
 
     #vis p.relative {
@@ -97,16 +100,28 @@
         display : none;
     }
 
+    .gmap:hover{
+        cursor : pointer;
+        background-color : 	#add8e6;
+    }
+
+    #mareyslider{
+      float:left ;
+    }
+
   </style>
 </head>
 
 <body>
 
-<div id="slider"></div>
-
-<svg id="Marey" > </svg>
-
 <div id='vis'></div>
+
+<div id="mareyslider">
+  <div id="slider"></div>
+  <svg id="Marey" > </svg>
+</div>
+
+
 
 </body>
 
@@ -115,9 +130,10 @@
 var width_maps = 220,
     height_maps = 170;
 
+
 var margin = {top: 20, right: 30, bottom: 20, left: 100},
-    width = 960 - margin.left - margin.right;
-    height = 500 - margin.top - margin.bottom;
+    width = 700 - margin.left - margin.right;
+    height = 400 - margin.top - margin.bottom;
 
 
 
@@ -131,6 +147,8 @@ Date.prototype.addMilliseconde = function(mseconde){
 
 var parseTime =  d3.timeParse("%Y-%m-%d|%H:%M:%S");
 var formatTime = d3.timeFormat("%d/%m \n %H:%M");
+var parseDays = d3.timeParse("%Y-%m-%d");
+var formatDay = d3.timeFormat("%e");
 
 var color = d3.scaleQuantize()
     .range(["#f00a00",
@@ -154,10 +172,41 @@ var slider = $("#slider")
     .css("margin-right", margin.right)
     .dateRangeSlider({
         bounds: {min: new Date(2015, 0, 1), max: new Date(2015, 1, 31, 12, 59, 59)},
-        defaultValues: {min: new Date(2015, 0, 1), max: new Date(2015, 0 ,25, 12, 59, 59)}
+        defaultValues: {min: new Date(2015, 0, 1), max: new Date(2015, 0 ,25, 12, 59, 59)},
+        scales: [
+            // Primary scale, on peut régler par mois
+            /*{
+                first: function(val){ return val; },
+                next: function(val){
+                    var d = new Date(val) ;
+                    return d.setMonth(d.getMonth()+1) ;
+                },
+                stop: function(val){ return false; },
+                label: function(val){ return formatMonth(new Date(val)); }
+            },*/
+            // Secondary scale, réglage par semaine
+            {
+                first: function(val){ return val; },
+                next: function(val){
+                    var d = new Date(val) ;
+                    return d.setDate(d.getDate()+7) ;
+                },
+                stop: function(val){ return false; },
+                label: function(val){ return formatDay(new Date(val));}
+            },
+            {
+                first: function(val){ return val; },
+                next: function(val){
+                    var d = new Date(val) ;
+                    return d.setDate(d.getDate()+1) ;
+                },
+                stop: function(val){ return false; },
+                label: function(val){ return "";}
+            },
+            ]
     });
 
-
+var bodyselect = d3.select("body");
 var svg = d3.select( "svg" )
     .attr( "width", width + margin.left )
     .attr( "height", height )
@@ -277,7 +326,8 @@ function visualise(error,airports,flights,states){
     // console.log(visualizationWrapper);
 
     var wrapper = visualizationWrapper
-                .append('div');
+                .append('div')
+                .attr("class","gmap");
 
     wrapper.style({
                     width_maps: width_maps + 'px',
@@ -303,14 +353,13 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
   svg_maps.attr({
           width_maps: width_maps,
           height_maps: height_maps
-      })
+      });
 
   g_maps= svg_maps.append("g");
   g_maps.attr("transform", "translate(" +margin.left/4+ "," + margin.top + ")");
 
-
   //On abonne un click sur la map à la génération de la Marey_map correspondante
-  g_maps.on("click",function(){
+  wrapper.on("click",function(){
 
       itineraire(itin_data,slider.dateRangeSlider("min"),slider.dateRangeSlider("max"));
       slider.bind("valuesChanged", function(e, data){
@@ -374,7 +423,7 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
 
 sub_airports=airports.filter(function(d){
   return all[d.code];
-})
+});
 
 
 ///Airport draw
@@ -407,26 +456,30 @@ function itineraire(aircraft, dateMin, dateMax){
   svg.selectAll(".line").remove();
   svg.selectAll(".axe").remove();
   svg.selectAll(".axe2").remove();
-
   var airports = [];
   var aircrafts = [];
   var center = aircraft.origin ;
   var keys = {};
   var total_time = parseTime(aircraft.values[0].day + "|" + aircraft.values[0].departure_time);
-  var previous = undefined ;
+  var previous = undefined,
+      ft = undefined,
+      last = undefined ;
+
   for(i = 0 ; i < aircraft.values.length ; i++){ // Calcule des distances depuis la géolocalisation
       var val = aircraft.values[i] ;
       if(val.cancelled != "0")
           continue;
 
-      var dist = Math.round(distance(center,val.origin_airport)) ;
-      if(previous != undefined){ // Temps à dans l'aéroport
+      var dist = Math.round(distance(center,val.origin_airport)),
+          dist_dest = Math.round(distance(center,val.destination_airport));
+
+      if(previous != undefined){ // Temps dans l'aéroport
           var d2 = parseTime(val.day+"|"+val.departure_time);
           total_time = total_time.addMilliseconde(d2.getTime()-previous.getTime());
           if( total_time <= dateMax && total_time >= dateMin) {
-              var last = total_time;
+              last = total_time;
               if(!ft)
-                  var ft = total_time ;
+                  ft = total_time ;
               aircrafts.push({
                   distanceOrigin: dist,
                   time: total_time,
@@ -442,38 +495,57 @@ function itineraire(aircraft, dateMin, dateMax){
           previous = parseTime(val.day+"|"+val.arrival_time);
 
       }
-      total_time = total_time.addMinutes(val.elapsed_time) ;
-      if( total_time <= dateMax && total_time >= dateMin) { //temps du voyage jusqu'à cet aéroport
-          var last = total_time;
-          if(!ft)
-              var ft = total_time ;
+      if( !ft && total_time <= dateMax && total_time >= dateMin) { // Gère le premier point
+          last = total_time;
+          ft = total_time ;
           aircrafts.push({
               distanceOrigin: dist,
               time: total_time,
               name: val.origin_airport,
               delay:parseInt(val.delay),
-              distance:val.distance
+              distance:0
           });
           if( !keys[val.origin_airport]){
               keys[val.origin_airport] = true ;
               airports.push({ "distance" : dist, "name": val.origin_airport });
           }
       }
-      previous = parseTime(val.day+"|"+val.arrival_time);
-
+      total_time = total_time.addMinutes(val.elapsed_time) ;
+      if( total_time <= dateMax && total_time >= dateMin) { //temps du voyage jusqu'à cet aéroport
+          last = total_time;
+          if(!ft)
+              ft = total_time ;
+          aircrafts.push({
+              distanceOrigin: dist_dest,
+              time: total_time,
+              name: val.destination_airport,
+              delay:parseInt(val.delay),
+              distance:val.distance
+          });
+          if( !keys[val.destination_airport]){
+              keys[val.destination_airport] = true ;
+              airports.push({ "distance" : dist_dest, "name": val.destination_airport });
+          }
+      }
+      if(total_time.getDate() != parseDays(val.day).getDate()) {
+          previous = new Date(parseTime(val.day + "|" + val.arrival_time).getTime() + (1000 * 60 * 60 * 24));
+      }else
+          previous = parseTime(val.day+"|"+val.arrival_time );
   }
+  //slider.dateRangeSlider("bounds", ft, last);
+
   dist_ap.domain([0,d3.max(aircrafts, function(d) { return d.distanceOrigin; })]);
-  time_ap.domain([ft,last]);
+  time_ap.domain([dateMin,dateMax]);
   color.domain([-40,40]);
 
   var xAxis = d3.axisTop()
       .scale(time_ap)
-      .ticks(8)
+      .ticks(6)
       .tickFormat(formatTime);
 
   var xAxisB = d3.axisBottom()
       .scale(time_ap)
-      .ticks(8)
+      .ticks(6)
       .tickFormat(formatTime);
 
   svg.append("g")
@@ -498,9 +570,13 @@ function itineraire(aircraft, dateMin, dateMax){
   airport.append("text") // Affiche les noms des aéroports
       .attr("x", -6)
       .attr("dx",function(d) { // Décalage vers la gauche pour éviter le chevauchement
-          var dist = Math.round(d.distance / 40) * 40;
+          var dist = Math.floor(d.distance / 50);
+          var dist2 = Math.floor(d.distance / 50)+1;
           tmp[dist] = tmp[dist]+1 || 1;
-          return (-tmp[dist]+1)*30;
+          tmp[dist2] = tmp[dist2]+1 || 1;
+          var better =  Math.min(-tmp[dist]+1,-tmp[dist2]+1)*30;
+          var second = Math.floor(( better - margin.left )/30)*30;
+          return better > -margin.left+30 ? better : second ;
       })
       .attr("dy", ".35em")
       .text(function(d) { return d.name; })
@@ -524,13 +600,13 @@ function itineraire(aircraft, dateMin, dateMax){
       .enter()
       .append("path")//.data(aircraft.values)
       .attr("class","line")
-      .attr("stroke", function(d){ return color(d[0].delay); })
+      .attr("stroke", function(d){ return color(d[1].delay) })
       //.style("stroke", function(d){return color(d.delay)})
       .attr("stroke-width", 1.5)
       .attr("fill","none")
       .attr("d", line)
       .on("mouseover",function(d,i){
-          displayMouse(d[0].distance+" kms parcourus");
+          displayMouse( d[1].distance+" kms parcourus");
       })
       .on("mouseout",function(d,i){
           tooltip.classed("hidden",true);
@@ -623,12 +699,12 @@ function segment(data){
 }
 
 function displayMouse(text){
-    var mouse = d3.mouse(svg.node()).map(function(d) {
+    var mouse = d3.mouse(bodyselect.node()).map(function(d) {
         return d;
     });
     tooltip.classed('hidden', false)
-        .attr('style', 'left:' + (mouse[0] + margin.left) +
-            'px; top:' + (mouse[1] + 2*margin.top) + 'px')
+        .attr('style', 'left:' + mouse[0] +
+            'px; top:' + ( mouse[1] - 30 ) + 'px')
         .html(text);
 }
 
