@@ -114,6 +114,21 @@
 
 <body>
 
+<form name="tailnumber_form">
+  Tail number search
+  <input type="text" id="autocomplete">
+  <input type="button" onclick=reVis_tailnumber() value="Update">
+</form>
+
+<form name="airp_form">
+  Origin airport filter
+  <select id="airport_select">
+  <option disabled selected value> -- select an option -- </option>
+  </select>
+    <input name="Submit"  type="button" onclick=reVis_airport() value="Update" >
+</form>
+
+
 <div id='vis'></div>
 
 <div id="mareyslider">
@@ -250,37 +265,114 @@ var path = d3.geoPath() // d3.geo.path avec d3 version 3
              .projection(projection);
 
 
-var data_paths={
-  air: "data/airports_US.csv",
-  usa: "data/us-states.json",
-  flights: "data/adapted_flights2.csv"
-};
+// var data_paths={
+//   air: "data/airports_US.csv",
+//   usa: "data/us-states.json",
+//   flights: "data/adapted_flights2.csv"
+// };
 
+var data_paths=["data/airports_US.csv","data/adapted_flights2.csv","data/us-states.json"]
 
 var line_maps = d3.line()
                  .x(function(d) { return d.x })
                  .y(function(d) { return d.y })
 
+
 //Load up the data
-d3.queue()
-  .defer(d3.csv,data_paths.air)
-  .defer(d3.csv,data_paths.flights)
-  .defer(d3.json,data_paths.usa)
-  .await(visualise);
+var queue = d3.queue();
+
+//Merci à http://usabilityetc.com/2016/08/how-to-perform-multiple-asynchronous-tasks-with-d3/
+data_paths.forEach(function(filename) {
+  if (filename.indexOf("json") === -1){
+      queue.defer(d3.csv, filename);
+  }
+  else {
+    queue.defer(d3.json,filename)
+  }
+});
+
+//idx is a global variable that holds where in the tail_numbers array the current selection is.
+//It is used to define the initial tail number to show here.
+//It it updated everytime a new tail_number is searched.
+idx=0;
+
+queue.awaitAll(function(error, DataSets) {
+  if (error) throw error;
+  // DataSets is an array of data
+  //Assign global variables to the data in order to map them to filters below.
+  total_data=DataSets; //Assign global 
+  nested=groupByAvion(DataSets[1]);
+
+  tail_numbers=Object.keys(nested) //Get all the tail numbers
+
+  var to_draw=tail_numbers.slice(idx,10); //Put here the start,end indexes of mini-maps you want to draw initially
+
+  //Find all the airport origins.
+  origins=[],origin_tails={};
+  tail_numbers.forEach(function(tail){
+
+    var ori=nested[tail].origin;
+
+    if (! origins.includes(ori)){
+      origins.push(ori);
+    };
+    if (! origin_tails[ori]){
+      origin_tails[ori]=[tail];
+    }
+    else{
+      origin_tails[ori].push(tail);
+    };
+  });
+
+  d_air = {};  
+
+  for(var i = 0 ; i < DataSets[0].length ; i++){
+    d_air[DataSets[0][i].code]=DataSets[0][i] ;
+  }
+
+    //JQuery autocompletion on tail number search field; https://github.com/devbridge/jQuery-Autocomplete
+  $('#autocomplete').autocomplete({
+      source: tail_numbers.slice(idx,idx+100)
+  });
+
+  visualise(DataSets[0],nested,DataSets[2],to_draw);
+
+  //Append all the origin airports to the select form.
+  d3.select('#airport_select').selectAll("option")
+  .data(origins).enter()
+  .append('option')
+  .text(function (d) { return d+": "+d_air[d].name; });
+
+});
+
+function reVis_tailnumber(){
+var choice=document.getElementById("autocomplete").value;
+idx=tail_numbers.findIndex(function(d){return d===choice;}); //Update idx to fit current selection.
+var to_draw=tail_numbers.slice(idx,idx+10);
+visualise(total_data[0],nested,total_data[2],to_draw);
+
+//Update the autocomplete.
+$('#autocomplete').autocomplete({
+    source: tail_numbers.slice(idx,idx+100)
+});
+
+  };
+
+function reVis_airport(){
+var choice=document.getElementById("airport_select").value.split(":")[0];
+var to_draw=origin_tails[choice].slice(0,10);
+visualise(total_data[0],nested,total_data[2],to_draw);
+  };
+
 
 
 //Main function here: draws the mini-maps and the Marey.
-function visualise(error,airports,flights,states){
+function visualise(airports,nested,states,to_draw){
 
   projection.fitSize([width_maps-35,height_maps-40],states); //This line fits the geoJSON into given dimensions.
 
-  /////Parse flights data////
-  var nested=groupByAvion(flights);
-
-
   /////Parse airports data///////
   var airports_coords={};
-
 
   //Assign each airport coordinates inside the airports data structure
   //And store those coordinates in a JS object for use in path drawing
@@ -293,19 +385,12 @@ function visualise(error,airports,flights,states){
       d.y = coords[1];
 
     airports_coords[d.code]={"x":d.x,"y":d.y}
-
-  }
-
-  tail_numbers=Object.keys(nested) //Get all the tail numbers
-
-  d_air = {};
-  for(var i = 0 ; i < airports.length ; i++){
-    d_air[airports[i].code]=airports[i] ;
+    
   }
 
   //Itinéraire :
-  var choose =tail_numbers[0]; //Premier itinéraire à montrer dès le départ ici.
-  //var choose = "N407AS";
+  var choose =to_draw[0]; //Premier itinéraire à montrer ici.
+
   var aircraft = nested[choose];
 
   itineraire(aircraft,slider.dateRangeSlider("min"),slider.dateRangeSlider("max"));
@@ -316,8 +401,9 @@ function visualise(error,airports,flights,states){
     });
 
 
-  var to_draw=tail_numbers.slice(0,8) //Put here the number of mini-maps you want to draw
-
+  //Remove all child elements of vis before (re) drawing.
+  var myNode = document.getElementById("vis");
+  myNode.innerHTML = '';
 
   to_draw.forEach(function(itin,i){
 
@@ -368,7 +454,6 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
 
     });
   });
-
 
   ///Draw the map////
   g_maps.selectAll("path")
@@ -666,10 +751,12 @@ function distance(code1,code2) {
 
 
 function groupByAvion(data){
+
   var nested = {};
+
   for(var k=0 ; k < data.length ; k++){
       d = data[k];
-      if(nested[d.tail_number]  )
+      if(nested[d.tail_number])
           nested[d.tail_number].values.push(d);
       else
           nested[d.tail_number] = { "values" : [d], "dict" : {} };
@@ -679,6 +766,7 @@ function groupByAvion(data){
       val.dict[dest] = val.dict[dest]+1 || 1;
       val.dict[src] = val.dict[src]+1 || 1;
   }
+
 
   for(var i in nested){//On cherche l'aéroport de base de l'avion
       aircraft = nested[i];
@@ -693,6 +781,7 @@ function groupByAvion(data){
       nested[i].origin = winner; // On sauvegarde le meilleur
       delete aircraft.dict
   }
+
   return nested
 }
 
