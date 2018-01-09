@@ -132,6 +132,7 @@
 <div id='vis'></div>
 
 <div id="mareyslider">
+  <svg id="legend" class="legend"></svg>
   <div id="slider"></div>
   <svg id="Marey" > </svg>
 </div>
@@ -162,15 +163,12 @@ Date.prototype.addMilliseconde = function(mseconde){
 
 var parseTime =  d3.timeParse("%Y-%m-%d|%H:%M:%S");
 var formatTime = d3.timeFormat("%d/%m \n %H:%M");
-var parseDays = d3.timeParse("%Y-%m-%d");
 var formatDay = d3.timeFormat("%e");
+var oneDay =  1000 * 60 * 60 * 24 ;
 
+var all_colors = ["#ffdf00","#ffb100","#ff9200","#ff6107","#f00a00"]
 var color = d3.scaleQuantize()
-    .range(["#f00a00",
-        "#ff6107",
-        "#ff9200",
-        "#ffb100",
-        "#ffdf00"]);
+    .range(all_colors);
 
 var dist_ap = d3.scaleLinear()
     .range([0, height-40]);
@@ -217,17 +215,23 @@ var slider = $("#slider")
                 },
                 stop: function(val){ return false; },
                 label: function(val){ return "";}
-            },
+            }
             ]
     });
 
 var bodyselect = d3.select("body");
-var svg = d3.select( "svg" )
+
+var svglegend = d3.select(".legend")
+    .attr("height", "30px")
+    .attr("width","100%")
+    .append("g")
+    .attr("transform", "translate(" +margin.left+ ",0)")
+
+var svg = d3.select( "#Marey" )
     .attr( "width", width + margin.left )
     .attr( "height", height )
     .append("g")
     .attr("transform", "translate(" +margin.left+ "," + margin.top + ")");
-
 
 var rect= svg.append("rect")
     .attr("x", 0)
@@ -271,7 +275,7 @@ var path = d3.geoPath() // d3.geo.path avec d3 version 3
 //   flights: "data/adapted_flights2.csv"
 // };
 
-var data_paths=["data/airports_US.csv","data/adapted_flights2.csv","data/us-states.json"]
+var data_paths=["data/airports_US.csv","data/adapted_flights2.csv","data/us-states.json"];
 
 var line_maps = d3.line()
                  .x(function(d) { return d.x })
@@ -302,7 +306,6 @@ queue.awaitAll(function(error, DataSets) {
   //Assign global variables to the data in order to map them to filters below.
   total_data=DataSets; //Assign global 
   nested=groupByAvion(DataSets[1]);
-
   tail_numbers=Object.keys(nested) //Get all the tail numbers
 
   var to_draw=tail_numbers.slice(idx,10); //Put here the start,end indexes of mini-maps you want to draw initially
@@ -343,6 +346,33 @@ queue.awaitAll(function(error, DataSets) {
   .append('option')
   .text(function (d) { return d+": "+d_air[d].name; });
 
+  svglegend.append("text")
+      .attr("x", 0 )
+      .attr("y", 9)
+      .attr("dy", ".35em")
+      .style("text-anchor", "start")
+      .text("Retards :");
+
+  var legend = svglegend.selectAll(".legend2")
+      .data([40,20,0,-20,-40])
+      .enter().append("g")
+      .attr("class","legend2")
+      .attr("transform", function(d, i) { return "translate(" + (40 + i * 55) + ",0)"; });
+
+
+  legend.append("rect")
+      .attr("x", 30)
+      .attr("width", 25)
+      .attr("height", 18)
+      .style("fill", color);
+
+  legend.append("text")
+      .attr("x", 60 )
+      .attr("y", 9)
+      .attr("dy", ".35em")
+      .style("text-anchor", "start")
+      .text(function(d) {return d; });
+
 });
 
 function reVis_tailnumber(){
@@ -376,7 +406,7 @@ function visualise(airports,nested,states,to_draw){
 
   //Assign each airport coordinates inside the airports data structure
   //And store those coordinates in a JS object for use in path drawing
-  for (var k=1;k<airports.length;k++){
+  for (var k=0;k<airports.length;k++){
 
     d=airports[k];
 
@@ -440,9 +470,11 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
           width_maps: width_maps,
           height_maps: height_maps
       });
+  svg_maps.attr("transform", "translate(" +margin.left/4+ "," + margin.top + ")")
+      .attr("width", width_maps);
 
   g_maps= svg_maps.append("g");
-  g_maps.attr("transform", "translate(" +margin.left/4+ "," + margin.top + ")");
+  //svg_maps.attr("transform", "translate(" +margin.left/4+ "," + margin.top + ")");
 
   //On abonne un click sur la map à la génération de la Marey_map correspondante
   wrapper.on("click",function(){
@@ -484,7 +516,6 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
     var add_src=airports_coords[src];
     var add_dest=airports_coords[dest];
 
-
     // if (typeof add_src==="undefined"){console.log(src)};
     if (src===prev){
 
@@ -504,11 +535,11 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
     //   .attr("d",lineFunction)
   }
 
-// console.log(succession)
+  // console.log(succession)
 
-sub_airports=airports.filter(function(d){
-  return all[d.code];
-});
+  sub_airports=airports.filter(function(d){
+    return all[d.code];
+  });
 
 
 ///Airport draw
@@ -530,7 +561,7 @@ sub_airports=airports.filter(function(d){
     //.selectAll("path.route")
     .datum(succession)
     // .enter()
-    .attr("d",line_maps)
+    .attr("d",line_maps);
 }
 
 
@@ -559,8 +590,21 @@ function itineraire(aircraft, dateMin, dateMax){
           dist_dest = Math.round(distance(center,val.destination_airport));
 
       if(previous != undefined){ // Temps dans l'aéroport
-          var d2 = parseTime(val.day+"|"+val.departure_time);
-          total_time = total_time.addMilliseconde((d2.getTime()-previous.getTime())%(1000*60*60*24));
+          //fuseau horaire de notre aéroport
+          if(val.origin_airport == aircraft.values[0])
+              total_time = d2;
+          else {
+              //Pas le même fuseau horaire, on calcule depuis l'arrivée
+              var d2 = parseTime(val.day + "|" + val.departure_time);
+
+              //total_time = total_time.addMilliseconde((d2.getTime()-previous.getTime())%(1000*60*60*24));
+              var differenceTime = d2.getTime() - previous.getTime();
+              if (differenceTime > oneDay && previous.getHours() < 4) { // Traficotage pour éviter d'ajouter trop de jours à cause du fuseau horaire
+                  differenceTime = d2.getTime() - previous.getTime() - oneDay;
+              }
+              total_time = total_time.addMilliseconde(Math.max(differenceTime, 0));
+          }
+
           if( total_time <= dateMax && total_time >= dateMin) {
               last = total_time;
               if(!ft)
@@ -617,11 +661,6 @@ function itineraire(aircraft, dateMin, dateMax){
               airports.push({ "distance" : dist_dest, "name": val.destination_airport });
           }
       }
-
-      /*var dat = parseDays(val.day);
-      if(total_time.getDate() > dat.getDate() && total_time.getTime() > dat.getTime()) {
-          previous = new Date(parseTime(val.day + "|" + val.arrival_time).getTime() + (1000 * 60 * 60 * 24));
-      }else*/
       previous = parseTime(val.day+"|"+val.arrival_time );
   }
   //slider.dateRangeSlider("bounds", ft, last);
@@ -800,7 +839,7 @@ function displayMouse(text){
     });
     tooltip.classed('hidden', false)
         .attr('style', 'left:' + mouse[0] +
-            'px; top:' + ( mouse[1] - 30 ) + 'px')
+            'px; top:' + ( mouse[1] - 70 ) + 'px')
         .html(text);
 }
 
