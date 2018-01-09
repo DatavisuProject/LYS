@@ -306,6 +306,7 @@ queue.awaitAll(function(error, DataSets) {
   //Assign global variables to the data in order to map them to filters below.
   total_data=DataSets; //Assign global 
   nested=groupByAvion(DataSets[1]);
+
   tail_numbers=Object.keys(nested) //Get all the tail numbers
 
   var to_draw=tail_numbers.slice(idx,10); //Put here the start,end indexes of mini-maps you want to draw initially
@@ -337,6 +338,10 @@ queue.awaitAll(function(error, DataSets) {
   $('#autocomplete').autocomplete({
       source: tail_numbers.slice(idx,idx+100)
   });
+
+  console.log(Object.keys(nested).length); //Gives the number of tail numbers
+  console.log(DataSets[0].length);
+  console.log(origins.length);
 
   visualise(DataSets[0],nested,DataSets[2],to_draw);
 
