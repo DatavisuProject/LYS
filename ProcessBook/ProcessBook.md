@@ -121,3 +121,36 @@ Pour cela nous avons identifier deux visualisations. La première donnerais un a
 
 ![Marey's train](https://github.com/DatavisuProject/LYS/blob/master/ProcessBook/Images/Capture5.PNG)
 
+
+----------
+
+## Semaines 6 et 7 (21 décembre 2017 au 4 janvier 2018)
+
+### Objectifs à remplir
+- Créer les visualisations
+- Rédiger article scientifique
+
+
+### Visualisations
+Ces deux semaines ont permis d'initier le développement des visualisations et d'arriver à avoir des visualisations globalement fonctionnelles. C'est-à-dire que l'on arrive à générer des mini-cartes des US et de tracer le pattern aérien d'un avion par carte. De l'autre côté, un clique sur une carte permet d'afficher la 'Marey map' correspondante. La visualisation comporte encore quelques erreurs mais on peut visualiser de façon plus précise les vols : quelle est l'origine ? la destination ? quelle est la distance parcourue ? ou encore combien de temps dure le vol ?
+
+### Article
+L'article scientifique écrit pour le rendu intermédiaire a du être totalement repris puisque nous avons changé de sujet depuis. Nous avons donc débuté la rédaction en se concentrant dans un premier temps sur la partie 'related work'.
+
+
+
+----------
+
+## Semaine 8 (4 au 10 janvier 2018)
+
+### Objectifs à remplir
+- Finir les visualisations
+- Développer une petite interface web
+- Finir la rédaction d'article
+
+
+### Visualisations
+Cette dernière semaine de projet nous a permis de résoudre les erreurs que nous avions. Par ailleurs, d'autres fonctionnalités on été ajoutées comme le fait de pouvoir visualiser sur les Marey map la ponctualité des avions. Des options de filtrages on été insérées : on peut choisir de visualiser un avion en particulier ou encore d'afficher 10 avions qui ont un certain aéroport d'origine. À noter que pour un avion, son aéroport d'origine est celui vers lequel il se rend le plus souvent. Enfin, lorsque l'on survol un trajet (une barre) on peut voir le temps de vol et la distance parcourue. Sur la carte on verra alors le trajet se mettre en évidence pour ce rendre compte du trajet de l'avion.
+
+### Interface
+Pour rendre la visualisation plus attractive, nous avons fait un peu de développement html avec l'ajout d'une barre de menu ou encore un descriptif du projet.
