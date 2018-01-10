@@ -137,7 +137,7 @@ var width_maps = 220,
 
 var margin = {top: 20, right: 30, bottom: 20, left: 100},
     width = 700 - margin.left - margin.right;
-    height = 400 - margin.top - margin.bottom;
+    height = 500 - margin.top - margin.bottom;
 
 
 
@@ -270,7 +270,17 @@ var line_maps = d3.line()
                  .y(function(d) { return d.y });
 var line = d3.line()
     .x(function(d) { return time_ap(d.time); })
-    .y(function(d) { return dist_ap(d.distanceOrigin); });
+    .y(function(d) { return dist_ap(d.distanceOrigin); })
+
+
+var monotoneLine= d3.line()
+    .x(function (d2) {
+        return time_ap(d2.time);
+    })
+    .y(function (d2) {
+        return dist_ap(d2.distanceOrigin);
+    })
+    .curve(d3.curveBasis);
 
 //Load up the data
 var queue = d3.queue();
@@ -330,10 +340,6 @@ queue.awaitAll(function(error, DataSets) {
       source: tail_numbers.slice(idx,idx+100)
   });
 
-  console.log(Object.keys(nested).length); //Gives the number of tail numbers
-  console.log(DataSets[0].length);
-  console.log(origins.length);
-
   visualise(DataSets[0],nested,DataSets[2],to_draw);
 
   //Append all the origin airports to the select form.
@@ -347,13 +353,13 @@ queue.awaitAll(function(error, DataSets) {
       .attr("y", 9)
       .attr("dy", ".35em")
       .style("text-anchor", "start")
-      .text("Retards :");
+      .text("Flight delays :");
 
   var legend = svglegend.selectAll(".legend2")
       .data([40,20,0,-20,-40])
       .enter().append("g")
       .attr("class","legend2")
-      .attr("transform", function(d, i) { return "translate(" + (40 + i * 55) + ",0)"; });
+      .attr("transform", function(d, i) { return "translate(" + (70 + i * 55) + ",0)"; });
 
 
   legend.append("rect")
@@ -557,7 +563,7 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
       return d.y;
     })
     .attr("r",4)
-    .style("fill","rgb(217,91,67)")
+    .style("fill",function(d){ return d.code==itin_data.origin ? "#9b3b00" : "#FF8D0A"})
     .style("opacity",0.85)
     .on("emit",function(d,i){
         var detail = d3.event.detail ;
@@ -573,7 +579,7 @@ function createMap(wrapper, airports, airports_coords, itin_data, itin_name, sta
     .on("unemit",function(d,i){
         d3.select(this)
             .attr("r","4")
-            .style("fill","rgb(217,91,67)")
+            .style("fill",function(d){ return d.code==itin_data.origin ? "#9b3b00" : "#FF8D0A"})
             .style("opacity",0.85);
     });
 
@@ -605,7 +611,8 @@ function itineraire(aircraft, dateMin, dateMax){
       last=values.last,
       ft=values.ft;
 
-  dist_ap.domain([0,d3.max(aircrafts, function(d) { return d.distanceOrigin; })]);
+  var max_dist = d3.max(aircrafts, function(d) { return d.distanceOrigin; })
+  dist_ap.domain([-200,max_dist+200]);
   time_ap.domain([dateMin,dateMax]);
   color.domain([-40,40]);
 
@@ -672,11 +679,17 @@ function itineraire(aircraft, dateMin, dateMax){
       .attr("class","line")
       .attr("stroke", function(d){ return color(d[1].delay) })
       //.style("stroke", function(d){return color(d.delay)})
-      .attr("stroke-width", 2.5)
+      .attr("stroke-width", 1.5)
       .attr("fill","none")
-      .attr("d", line)
+      .attr("d", function(d){
+          if(d[1].distance == 0)
+              return line(d);
+          else {
+              return monotoneLine(computeCurve(d,max_dist));
+          }
+      })
       .on("mouseover",function(d,i){
-          displayMouse( d[1].distance+" kms parcourus");
+          displayMouse( (Math.round(d[1].distance*1.60934))+" kms parcourus");
           launchEvent(act_map,"emit",".route",d[0].name,d[1].name)
           launchEvent(act_map,"emit","circle",aircraft.values[0].tail_number,d[0].name)
           launchEvent(act_map,"emit","circle",aircraft.values[0].tail_number,d[1].name)
@@ -775,7 +788,7 @@ function groupByAvion(data){
 function segment(data){
     var res = [];
     for(var i =0;i<data.length-1 ; i++){
-        res.push([ data[i],data[i+1]]);
+        res.push([data[i],data[i+1]]);
     }
     return res ;
 }
@@ -841,11 +854,11 @@ function studyValues(aircraft,dateMin,dateMax){
 
         if(previous != undefined){ // Temps dans l'aéroport
             //fuseau horaire de notre aéroport
+            var d2 = parseTime(val.day + "|" + val.departure_time);
             if(val.origin_airport == aircraft.values[0])
                 total_time = d2;
             else {
                 //Pas le même fuseau horaire, on calcule depuis l'arrivée
-                var d2 = parseTime(val.day + "|" + val.departure_time);
 
                 //total_time = total_time.addMilliseconde((d2.getTime()-previous.getTime())%(1000*60*60*24));
                 var differenceTime = d2.getTime() - previous.getTime();
@@ -907,6 +920,34 @@ function studyValues(aircraft,dateMin,dateMax){
         previous = parseTime(val.day+"|"+val.arrival_time );
     }
     return { ft: ft, airports : airports, aircrafts : aircrafts, last:last }
+}
+
+function computeCurve(d,max_dist){
+    var deltaTime = d[1].time.getTime()-d[0].time.getTime();
+    var deltaDist =d[1].distanceOrigin-d[0].distanceOrigin;
+    var calc = Math.abs(deltaDist)/ (d[1].distance*1.60934);
+    var sous = d[1].distance*1.60934 - Math.abs(deltaDist);
+    sous = deltaDist > 0 ? -sous : +sous;
+    var rapport = Math.exp(2*(-1 + calc));
+    var tmp = d[1];
+    var rapport2 = calc < 0.7 ? (1/rapport)*sous/4 : 0;
+
+    var middle = d[0].distanceOrigin + deltaDist/2 ;
+    var proportion = middle / max_dist ;
+    var prop1 = deltaDist> 0 ? proportion : 1-proportion;
+    var prop2 = deltaDist> 0 ? 1-proportion : proportion;
+
+
+    var t1 = new Date(d[1].time.getTime()-deltaTime*rapport);
+    var dist = d[0].distanceOrigin + rapport2*prop1;//*deltaDist;
+
+    var t2 = new Date(d[0].time.getTime() + deltaTime*rapport);
+    var dist2 = d[1].distanceOrigin - rapport2*prop2;//*deltaDist;
+
+
+    d.splice(1, 0, {time: t1, distanceOrigin:dist,name:tmp.name,distance:tmp.distance,delay:tmp.delay  });
+    d.splice(2, 0, {time: t2, distanceOrigin:dist2,name:tmp.name,distance:tmp.distance,delay:tmp.delay });
+    return d;
 }
 
 </script>
